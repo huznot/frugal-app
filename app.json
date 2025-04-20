@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "frugal-app",
-    "slug": "frugal-app",
+    "name": "Frugal",
+    "slug": "frugal-app-new",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
