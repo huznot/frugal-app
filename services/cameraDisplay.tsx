@@ -32,7 +32,7 @@ export const getUpcFromImage = async (imagePath: string): Promise<string | null>
                 {
                     parts: [
                         {
-                            text: "You will receive an image of a barcode. Output ONLY the UPC number in the barcode. This is, the first number at the very left, the two bunch of numbers in the center, then the very last number at the very right. Do NOT output anything else—no explanations, no extra text, just the UPC digits."
+                            text: "You will receive an image of a barcode. Output ONLY the UPC number in the barcode. Part of the UPC number is the single digit which could be to the very left and right of the barcode. So, the first number at the left of the barcode, the two bunch of numbers in the center, then the very last number at the very right of the barcode if applicable. Do NOT output anything else—no explanations, no extra text, just the UPC digits. Please double check and ensure that each digit is being ouputted or the program will fail."
                         },
                         {
                             inlineData: {
