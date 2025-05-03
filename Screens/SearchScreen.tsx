@@ -16,12 +16,14 @@ export default function SearchScreen() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     
     setLoading(true);
     setError(null);
+    setHasSearched(true);
     
     try {
       const results = await searchProducts(searchQuery);
@@ -63,7 +65,12 @@ export default function SearchScreen() {
           style={styles.searchInput}
           placeholder="Search for a product..."
           value={searchQuery}
-          onChangeText={setSearchQuery}
+          onChangeText={(text) => {
+            setSearchQuery(text);
+            if (text === '') {
+              setHasSearched(false);
+            }
+          }}
           onSubmitEditing={handleSearch}
           returnKeyType="search"
         />
@@ -95,7 +102,7 @@ export default function SearchScreen() {
         ListEmptyComponent={() => !loading && (
           <View style={styles.centerContainer}>
             <Text style={styles.emptyText}>
-              {searchQuery ? 'No products found' : 'Search for products to see results'}
+              {hasSearched ? 'No products found' : 'Search for products to see results'}
             </Text>
           </View>
         )}

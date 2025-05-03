@@ -23,6 +23,12 @@ const slides = [
   },
   {
     id: 3,
+    title: 'Location Access',
+    description: 'We need your location to show you the closest stores and best deals near you',
+    image: require('../assets/location-permission.png'),
+  },
+  {
+    id: 4,
     title: "Let's Get Started",
     description: 'Start scanning and saving today!',
     image: require('../assets/savings.png'),

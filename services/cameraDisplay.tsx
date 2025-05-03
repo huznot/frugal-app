@@ -1,22 +1,26 @@
-import axios from 'axios';
 import * as FileSystem from 'expo-file-system';
 import { searchProducts, ProductResult } from './cameraSearch';
+import { LocationData } from './locationService';
 
 // API Keys
 const GEMINI_API_KEY = "REDACTED";
-const BARCODE_LOOKUP_API_KEY = "10zg7wifwoxuoh939oddirtyizae1e";
 
 export type ProcessImageResult = {
-    productInfo: any;
+    productInfo: {
+        name: string;
+        brand?: string;
+        size?: string;
+        weight?: string;
+    };
     storeResults: ProductResult[];
 } | null;
 
 /**
- * Extracts UPC from an image using Gemini API
+ * Extracts product information from an image using Gemini API
  * @param imagePath Path to the image file
- * @returns UPC string or null if extraction fails
+ * @returns Product information or null if extraction fails
  */
-export const getUpcFromImage = async (imagePath: string): Promise<string | null> => {
+export const getProductInfoFromImage = async (imagePath: string): Promise<{ name: string; brand?: string; size?: string; weight?: string; } | null> => {
     try {
         // Read the image file and convert to base64
         const base64Image = await FileSystem.readAsStringAsync(imagePath, {
@@ -32,7 +36,7 @@ export const getUpcFromImage = async (imagePath: string): Promise<string | null>
                 {
                     parts: [
                         {
-                            text: "You will receive an image of a barcode. Output ONLY the UPC number in the barcode. Part of the UPC number is the single digit which could be to the very left and right of the barcode. So, the first number at the left of the barcode, the two bunch of numbers in the center, then the very last number at the very right of the barcode if applicable. Do NOT output anything else—no explanations, no extra text, just the UPC digits. Please double check and ensure that each digit is being ouputted or the program will fail."
+                            text: "You will receive an image of a product. Look at the product and its packaging. Return ONLY a single sentence describing the product, including the brand name and product name if visible. For example: 'Old Spice Pure Sport Deodorant' or 'Coca-Cola Classic 2L'. Do not include any other text or formatting."
                         },
                         {
                             inlineData: {
@@ -46,12 +50,30 @@ export const getUpcFromImage = async (imagePath: string): Promise<string | null>
         };
 
         // Send POST request to Gemini
-        const response = await axios.post(url, payload);
-        const result = response.data;
-
-        return result.candidates[0].content.parts[0].text.trim();
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        const productDescription = result.candidates[0].content.parts[0].text.trim();
+        console.log("Gemini response:", productDescription);
+        
+        return {
+            name: productDescription,
+            brand: undefined,
+            size: undefined,
+            weight: undefined
+        };
     } catch (error: any) {
-        console.error("Failed to extract UPC:", error);
+        console.error("Failed to extract product information:", error);
         if (error.response?.data?.error) {
             console.error("\nAPI Error Details:", error.response.data.error);
         }
@@ -60,70 +82,31 @@ export const getUpcFromImage = async (imagePath: string): Promise<string | null>
 };
 
 /**
- * Looks up product information using UPC and searches local stores
- * @param upc The UPC code to look up
- * @returns Product data and store results
- */
-export const lookupProductInfo = async (upc: string): Promise<{ productInfo: any, storeResults: ProductResult[] } | null> => {
-    try {
-        // Barcode Lookup API endpoint
-        const url = `https://api.barcodelookup.com/v3/products?barcode=${upc}&formatted=y&key=${BARCODE_LOOKUP_API_KEY}`;
-        
-        const response = await axios.get(url);
-        const data = response.data;
-        
-        const product = data.products[0];
-        const brand = product?.brand || '';
-        const title = product?.title || '';
-        
-        // Search for the product in local stores
-        const searchQuery = `${brand} ${title}`;
-        const storeResults = await searchProducts(searchQuery);
-        
-        // Log product details
-        console.log(`\nProduct: ${title}`);
-        console.log(`Brand: ${brand}`);
-        console.log("\nAvailable in stores:");
-        
-        storeResults.forEach(result => {
-            console.log(`\n- ${result.seller}: ${result.price}`);
-            if (result.rating) {
-                console.log(`  Rating: ${result.rating} (${result.reviews || '0'} reviews)`);
-            }
-            if (result.thumbnail) {
-                console.log(`  Product Image: ${result.thumbnail}`);
-            }
-        });
-        
-        return {
-            productInfo: data,
-            storeResults
-        };
-        
-    } catch (error) {
-        console.error("Error looking up product information:", error);
-        console.log("UPC:", upc);
-        return null;
-    }
-};
-
-/**
- * Processes an image to extract UPC and get product information
+ * Processes an image to extract product information and search for it
  * @param imagePath Path to the image file
+ * @param userLocation Optional user location for distance calculation
  * @returns Product information and store results
  */
-export const processImage = async (imagePath: string): Promise<ProcessImageResult> => {
+export const processImage = async (imagePath: string, userLocation?: LocationData): Promise<ProcessImageResult> => {
     try {
-        // First get the UPC from the image
-        const upc = await getUpcFromImage(imagePath);
+        // Get product information from the image
+        const productInfo = await getProductInfoFromImage(imagePath);
         
-        if (!upc) {
-            console.error("Failed to detect UPC from image");
+        if (!productInfo) {
+            console.error("Failed to detect product information from image");
             return null;
         }
         
-        // Look up the product information
-        return await lookupProductInfo(upc);
+        // Create search query from product information
+        const searchQuery = `${productInfo.brand ? productInfo.brand + ' ' : ''}${productInfo.name} ${productInfo.size || ''} ${productInfo.weight || ''}`.trim();
+        
+        // Search for the product in local stores
+        const storeResults = await searchProducts(searchQuery, userLocation);
+        
+        return {
+            productInfo,
+            storeResults
+        };
     } catch (error) {
         console.error("Error processing image:", error);
         return null;

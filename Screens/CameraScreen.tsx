@@ -20,6 +20,8 @@ export default function CameraScreen({ navigation }: Props) {
   const [products, setProducts] = useState<ProductResult[]>([]);
   const cameraRef = useRef<any>(null);
   const [showResults, setShowResults] = useState(false);
+  const [photo, setPhoto] = useState<ProcessImageResult | null>(null);
+  const [capturedPhotoUri, setCapturedPhotoUri] = useState<string | null>(null);
 
   if (!permission) {
     // Camera permissions are still loading
@@ -97,6 +99,8 @@ export default function CameraScreen({ navigation }: Props) {
         setError('Failed to capture image.');
         return;
       }
+      
+      setCapturedPhotoUri(photo.uri);
       
       // Process the image and get the results
       const processResult = await processImageFromService(photo.uri);
@@ -177,11 +181,22 @@ export default function CameraScreen({ navigation }: Props) {
             <Text style={styles.resultsHeaderText}>Available in stores:</Text>
             <TouchableOpacity 
               style={styles.closeButton}
-              onPress={() => setShowResults(false)}
+              onPress={() => {
+                setShowResults(false);
+                setCapturedPhotoUri(null);
+              }}
             >
               <Text style={styles.closeButtonText}>✕</Text>
             </TouchableOpacity>
           </View>
+
+          {capturedPhotoUri && (
+            <Image 
+              source={{ uri: capturedPhotoUri }}
+              style={styles.capturedImage}
+              resizeMode="contain"
+            />
+          )}
           
           {loading && (
             <View style={styles.centerContainer}>
@@ -265,19 +280,13 @@ const styles = StyleSheet.create({
   },
   resultsContainer: {
     position: 'absolute',
-    bottom: 0,
+    top: 0,
     left: 0,
     right: 0,
+    bottom: 0,
     backgroundColor: '#f8f9fa',
-    maxHeight: '50%',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
+    zIndex: 1000,
   },
   centerContainer: {
     justifyContent: 'center',
@@ -361,5 +370,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#ff4444',
+  },
+  capturedImage: {
+    width: '100%',
+    height: 200,
+    backgroundColor: '#eee',
+    marginBottom: 16,
+    borderRadius: 8,
   },
 });
