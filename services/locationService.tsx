@@ -22,18 +22,6 @@ const STORE_NAME_MAPPING: { [key: string]: string } = {
   'pharmacy': 'Pharmacy'
 };
 
-// Store coordinates for Winnipeg (you can add more locations)
-const WINNIPEG_STORE_COORDINATES: { [key: string]: LocationData } = {
-  'Walmart': { latitude: 49.8951, longitude: -97.1384 },
-  'Shoppers Drug Mart': { latitude: 49.8951, longitude: -97.1384 },
-  'Sobeys': { latitude: 49.8951, longitude: -97.1384 },
-  'Save On Foods': { latitude: 49.8951, longitude: -97.1384 },
-  'Superstore': { latitude: 49.8951, longitude: -97.1384 },
-  'Costco': { latitude: 49.8951, longitude: -97.1384 },
-  'No Frills': { latitude: 49.8951, longitude: -97.1384 },
-  'Safeway': { latitude: 49.8951, longitude: -97.1384 },
-  'Pharmasave': { latitude: 49.8951, longitude: -97.1384 }
-};
 
 export const getCurrentLocation = async (): Promise<LocationData> => {
   let { status } = await Location.requestForegroundPermissionsAsync();

@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, TextInput, TouchableOpacity, Text, FlatList, Image, ActivityIndicator } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  TextInput,
+  TouchableOpacity,
+  Text,
+  FlatList,
+  Image,
+  ActivityIndicator,
+  Linking,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { searchProducts } from '../services/productSearch';
 
@@ -20,11 +30,11 @@ export default function SearchScreen() {
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
-    
+
     setLoading(true);
     setError(null);
     setHasSearched(true);
-    
+
     try {
       const results = await searchProducts(searchQuery);
       setProducts(results);
@@ -36,27 +46,41 @@ export default function SearchScreen() {
     }
   };
 
-  const renderProduct = ({ item }: { item: Product }) => (
-    <View style={styles.productCard}>
-      {item.thumbnail && (
-        <Image 
-          source={{ uri: item.thumbnail }} 
-          style={styles.storeIcon}
-          resizeMode="contain"
-        />
-      )}
-      <View style={styles.productInfo}>
-        <Text style={styles.productName} numberOfLines={2}>{item.title}</Text>
-        <Text style={styles.storeInfo}>{item.seller}</Text>
-        <View style={styles.bottomRow}>
-          <Text style={styles.rating}>
-            {item.rating ? `Rating ${item.rating}` : 'No rating'}
-          </Text>
-          <Text style={styles.price}>{item.price}</Text>
+  const renderProduct = ({ item }: { item: Product }) => {
+    const openMapsSearch = () => {
+      const query = encodeURIComponent(item.seller);
+      const url = `geo:0,0?q=${query}`; // Opens Google Maps app
+      Linking.openURL(url).catch(err =>
+        console.error('Failed to open Maps app:', err)
+      );
+    };    
+
+    return (
+      <TouchableOpacity onPress={openMapsSearch} activeOpacity={0.8}>
+        <View style={styles.productCard}>
+          {item.thumbnail && (
+            <Image
+              source={{ uri: item.thumbnail }}
+              style={styles.storeIcon}
+              resizeMode="contain"
+            />
+          )}
+          <View style={styles.productInfo}>
+            <Text style={styles.productName} numberOfLines={2}>
+              {item.title}
+            </Text>
+            <Text style={styles.storeInfo}>{item.seller}</Text>
+            <View style={styles.bottomRow}>
+              <Text style={styles.rating}>
+                {item.rating ? `Rating ${item.rating}` : 'No rating'}
+              </Text>
+              <Text style={styles.price}>{item.price}</Text>
+            </View>
+          </View>
         </View>
-      </View>
-    </View>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -74,10 +98,7 @@ export default function SearchScreen() {
           onSubmitEditing={handleSearch}
           returnKeyType="search"
         />
-        <TouchableOpacity 
-          style={styles.searchButton} 
-          onPress={handleSearch}
-        >
+        <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
           <Ionicons name="search" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -99,13 +120,17 @@ export default function SearchScreen() {
         renderItem={renderProduct}
         keyExtractor={(item, index) => index.toString()}
         contentContainerStyle={styles.productList}
-        ListEmptyComponent={() => !loading && (
-          <View style={styles.centerContainer}>
-            <Text style={styles.emptyText}>
-              {hasSearched ? 'No products found' : 'Search for products to see results'}
-            </Text>
-          </View>
-        )}
+        ListEmptyComponent={() =>
+          !loading && (
+            <View style={styles.centerContainer}>
+              <Text style={styles.emptyText}>
+                {hasSearched
+                  ? 'No products found'
+                  : 'Search for products to see results'}
+              </Text>
+            </View>
+          )
+        }
       />
     </View>
   );
@@ -205,4 +230,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 16,
   },
-}); 
+});

@@ -6,6 +6,8 @@ import { ProductResult, searchProducts } from '../services/cameraSearch';
 import { getUpcFromImage, lookupProductInfo, processImage as processImageFromService, ProcessImageResult } from '../services/cameraDisplay';
 import * as FileSystem from 'expo-file-system';
 import { Asset } from 'expo-asset';
+import { Linking } from 'react-native';
+
 
 type Props = {
   navigation: NativeStackNavigationProp<any>;
@@ -105,8 +107,8 @@ export default function CameraScreen({ navigation }: Props) {
       // Process the image and get the results
       const processResult = await processImageFromService(photo.uri);
       
-      if (!processResult) {
-        setError('Failed to process image or find product information.');
+      if (!processResult || !processResult.storeResults || processResult.storeResults.length === 0) {
+        setError('No product information found for this image. Please try again with a clearer image.');
         return;
       }
       
@@ -121,26 +123,36 @@ export default function CameraScreen({ navigation }: Props) {
     }
   };
 
+  const openMapsSearch = (seller: string) => {
+    const query = encodeURIComponent(seller);
+    const url = `geo:0,0?q=${query}`; // Opens Google Maps app
+    Linking.openURL(url).catch(err =>
+      console.error('Failed to open Maps app:', err)
+    );
+  };
+
   const renderProduct = ({ item }: { item: ProductResult }) => (
-    <View style={styles.productCard}>
-      {item.thumbnail && (
-        <Image 
-          source={{ uri: item.thumbnail }} 
-          style={styles.storeIcon}
-          resizeMode="contain"
-        />
-      )}
-      <View style={styles.productInfo}>
-        <Text style={styles.productName} numberOfLines={2}>{item.title}</Text>
-        <Text style={styles.storeInfo}>{item.seller}</Text>
-        <View style={styles.bottomRow}>
-          <Text style={styles.rating}>
-            {item.rating ? `Rating ${item.rating}` : 'No rating'}
-          </Text>
-          <Text style={styles.price}>{item.price}</Text>
+    <TouchableOpacity onPress={() => openMapsSearch(item.seller)} activeOpacity={0.8}>
+      <View style={styles.productCard}>
+        {item.thumbnail && (
+          <Image 
+            source={{ uri: item.thumbnail }} 
+            style={styles.storeIcon}
+            resizeMode="contain"
+          />
+        )}
+        <View style={styles.productInfo}>
+          <Text style={styles.productName} numberOfLines={2}>{item.title}</Text>
+          <Text style={styles.storeInfo}>{item.seller}</Text>
+          <View style={styles.bottomRow}>
+            <Text style={styles.rating}>
+              {item.rating ? `Rating ${item.rating}` : 'No rating'}
+            </Text>
+            <Text style={styles.price}>{item.price}</Text>
+          </View>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
