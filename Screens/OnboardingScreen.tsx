@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Image, Dimensions, TextInput, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as Location from 'expo-location';
+import { useCameraPermissions } from 'expo-camera'; // Use the hook for camera permissions
 
 type Props = {
   navigation: NativeStackNavigationProp<any>;
@@ -12,13 +14,13 @@ const slides = [
   {
     id: 1,
     title: 'Welcome to Frugal',
-    description: 'Scan barcodes to find the best deals on your favorite products',
+    description: 'Scan a product to find the best deals on your favorite products',
     image: require('../assets/barcode-scan.png'),
   },
   {
     id: 2,
     title: 'Camera Access',
-    description: 'We need camera permission to scan barcodes and help you save money',
+    description: 'We need camera permission to scan an item and help you save money',
     image: require('../assets/camera-permission.png'),
   },
   {
@@ -26,6 +28,7 @@ const slides = [
     title: 'Location Access',
     description: 'We need your location to show you the closest stores and best deals near you',
     image: require('../assets/location-permission.png'),
+    hasInput: true,
   },
   {
     id: 4,
@@ -37,13 +40,42 @@ const slides = [
 
 export default function OnboardingScreen({ navigation }: Props) {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [city, setCity] = useState('');
+  const [isInputValid, setIsInputValid] = useState(false);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions(); // Use the hook
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    if (currentSlide === 1) {
+      // Request camera permissions on slide ID 2
+      if (!cameraPermission?.granted) {
+        const { granted } = await requestCameraPermission();
+        if (!granted) {
+          Alert.alert('Permission Denied', 'Camera permission is required to scan items.');
+          return;
+        }
+      }
+    }
+
+    if (currentSlide === 2) {
+      // Request location permissions on slide ID 3
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required to find nearby stores.');
+        return;
+      }
+    }
+
     if (currentSlide < slides.length - 1) {
       setCurrentSlide(currentSlide + 1);
     } else {
-      navigation.navigate('MainTabs');
+      // Pass city directly to MainTabs
+      navigation.navigate('MainTabs', { city });
     }
+  };
+
+  const handleInputChange = (text: string) => {
+    setCity(text);
+    setIsInputValid(text.trim().length > 0); // Validate input
   };
 
   return (
@@ -52,8 +84,17 @@ export default function OnboardingScreen({ navigation }: Props) {
         <Image source={slides[currentSlide].image} style={styles.image} />
         <Text style={styles.title}>{slides[currentSlide].title}</Text>
         <Text style={styles.description}>{slides[currentSlide].description}</Text>
+
+        {slides[currentSlide].hasInput && (
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your city"
+            value={city}
+            onChangeText={handleInputChange}
+          />
+        )}
       </View>
-      
+
       <View style={styles.pagination}>
         {slides.map((_, index) => (
           <View
@@ -66,7 +107,14 @@ export default function OnboardingScreen({ navigation }: Props) {
         ))}
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleNext}>
+      <TouchableOpacity
+        style={[
+          styles.button,
+          slides[currentSlide].hasInput && !isInputValid && styles.buttonDisabled,
+        ]}
+        onPress={handleNext}
+        disabled={slides[currentSlide].hasInput && !isInputValid} // Disable button if input is invalid
+      >
         <Text style={styles.buttonText}>
           {currentSlide === slides.length - 1 ? 'Get Started' : 'Next'}
         </Text>
@@ -107,6 +155,15 @@ const styles = StyleSheet.create({
     color: '#666',
     paddingHorizontal: 20,
   },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 10,
+    width: '80%',
+    marginTop: 20,
+    textAlign: 'center',
+  },
   pagination: {
     flexDirection: 'row',
     marginBottom: 40,
@@ -127,6 +184,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 100,
     paddingVertical: 15,
     borderRadius: 25,
+  },
+  buttonDisabled: {
+    backgroundColor: '#ccc',
   },
   buttonText: {
     color: 'white',

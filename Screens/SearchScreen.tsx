@@ -9,9 +9,13 @@ import {
   Image,
   ActivityIndicator,
   Linking,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { searchProducts } from '../services/productSearch';
+import { findNearestStore } from '../services/storeDistance'; // Import the function
+import { useRoute } from '@react-navigation/native';
 
 interface Product {
   title: string;
@@ -19,14 +23,30 @@ interface Product {
   seller: string;
   rating?: string;
   thumbnail?: string;
+  product_link?: string;
+  distance?: string; // Add distance property
 }
 
+const cleanStoreName = (storeName: string): string => {
+  // Remove unwanted prefixes or suffixes
+  return storeName
+    .replace(/^voila by\s*/i, '') // Remove "voila by" at the start
+    .replace(/\.ca$/i, '') // Remove ".ca" at the end
+    .replace(/^doordash -\s*/i, '') // Remove "doordash - " at the start
+    .trim(); // Trim any extra spaces
+};
+
 export default function SearchScreen() {
+  const route = useRoute();
+  const { city } = route.params; // Retrieve city from navigation params
+
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -37,7 +57,21 @@ export default function SearchScreen() {
 
     try {
       const results = await searchProducts(searchQuery);
-      setProducts(results);
+
+      // Fetch distances for each product
+      const productsWithDistances = await Promise.all(
+        results.map(async (product: Product) => {
+          try {
+            const cleanedSeller = cleanStoreName(product.seller); // Clean the store name
+            const distance = await findNearestStore(cleanedSeller, city); // Pass city here
+            return { ...product, distance };
+          } catch {
+            return { ...product, distance: 'N/A' };
+          }
+        })
+      );
+
+      setProducts(productsWithDistances);
     } catch (err) {
       setError('Failed to search products. Please try again.');
       console.error(err);
@@ -46,17 +80,32 @@ export default function SearchScreen() {
     }
   };
 
+  const openMapsSearch = (seller: string) => {
+    const query = encodeURIComponent(seller);
+    const url = `geo:0,0?q=${query}`; // Opens Google Maps app
+    Linking.openURL(url).catch(err =>
+      console.error('Failed to open Maps app:', err)
+    );
+  };
+
+  const openWebsite = (productLink: string) => {
+    if (!productLink) {
+      console.error('No product link available');
+      return;
+    }
+    Linking.openURL(productLink).catch(err =>
+      console.error('Failed to open product link:', err)
+    );
+  };
+
   const renderProduct = ({ item }: { item: Product }) => {
-    const openMapsSearch = () => {
-      const query = encodeURIComponent(item.seller);
-      const url = `geo:0,0?q=${query}`; // Opens Google Maps app
-      Linking.openURL(url).catch(err =>
-        console.error('Failed to open Maps app:', err)
-      );
-    };    
+    const handlePress = () => {
+      setSelectedProduct(item);
+      setModalVisible(true);
+    };
 
     return (
-      <TouchableOpacity onPress={openMapsSearch} activeOpacity={0.8}>
+      <TouchableOpacity onPress={handlePress} activeOpacity={0.8}>
         <View style={styles.productCard}>
           {item.thumbnail && (
             <Image
@@ -77,6 +126,9 @@ export default function SearchScreen() {
               <Text style={styles.price}>{item.price}</Text>
             </View>
           </View>
+          <Text style={styles.distanceText}>
+            {typeof item.distance === 'string' ? item.distance : String(item.distance ?? 'N/A')}
+          </Text>
         </View>
       </TouchableOpacity>
     );
@@ -120,8 +172,9 @@ export default function SearchScreen() {
         renderItem={renderProduct}
         keyExtractor={(item, index) => index.toString()}
         contentContainerStyle={styles.productList}
-        ListEmptyComponent={() =>
-          !loading && (
+        ListEmptyComponent={() => {
+          if (loading) return null;
+          return (
             <View style={styles.centerContainer}>
               <Text style={styles.emptyText}>
                 {hasSearched
@@ -129,9 +182,45 @@ export default function SearchScreen() {
                   : 'Search for products to see results'}
               </Text>
             </View>
-          )
-        }
+          );
+        }}
       />
+
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          {/* Ensure the overlay is static */}
+          <Pressable
+            style={styles.overlayPressable}
+            onPress={() => setModalVisible(false)}
+          />
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{selectedProduct?.title}</Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                openMapsSearch(selectedProduct?.seller || '');
+                setModalVisible(false);
+              }}
+            >
+              <Text style={styles.modalButtonText}>Open in Maps</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                openWebsite(selectedProduct?.product_link || '');
+                setModalVisible(false);
+              }}
+            >
+              <Text style={styles.modalButtonText}>Open Website</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -174,13 +263,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: 'white',
     borderRadius: 10,
-    padding: 12,
+    padding: 16,
     marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+    position: 'relative', // Necessary for absolute positioning
+    minHeight: 120, // Ensure enough space for content
   },
   storeIcon: {
     width: 60,
@@ -190,11 +281,13 @@ const styles = StyleSheet.create({
   },
   productInfo: {
     flex: 1,
+    justifyContent: 'space-between', // Distribute content vertically
   },
   productName: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
+    maxWidth: '80%',
   },
   storeInfo: {
     fontSize: 14,
@@ -205,6 +298,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 4,
   },
   rating: {
     fontSize: 14,
@@ -214,6 +308,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#ff4444',
+    position: 'absolute', // Position at the bottom-right
+    bottom: 8,
+    right: 8,
+  },
+  distanceText: {
+    position: 'absolute', // Position at the top-right
+    top: 8,
+    right: 8,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
   },
   centerContainer: {
     flex: 1,
@@ -230,4 +335,41 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 16,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  overlayPressable: {
+    flex: 1,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 16,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
+  },
+  modalButton: {
+    backgroundColor: 'white',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: 'black',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });
+

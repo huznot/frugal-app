@@ -14,7 +14,10 @@ import SearchScreen from './Screens/SearchScreen';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-function MainTabs() {
+function MainTabs({ route }: any) {
+  const { city } = route.params || {}; // Retrieve city from route params
+  console.log(`City in MainTabs: ${city}`); // Debug log
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -31,8 +34,16 @@ function MainTabs() {
         tabBarInactiveTintColor: 'gray',
       })}
     >
-      <Tab.Screen name="Camera" component={CameraScreen} />
-      <Tab.Screen name="Search" component={SearchScreen} />
+      <Tab.Screen
+        name="Camera"
+        component={CameraScreen}
+        initialParams={{ city }} // Pass city to CameraScreen
+      />
+      <Tab.Screen
+        name="Search"
+        component={SearchScreen}
+        initialParams={{ city }} // Pass city to SearchScreen
+      />
     </Tab.Navigator>
   );
 }

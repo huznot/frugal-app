@@ -1,6 +1,6 @@
 import { LocationData } from './locationService';
 
-const API_KEY = "KQSjK9LWi29vdzggS11ATSJJ";
+const API_KEY = "KYPT7eyheXzSkoNG33JRnyt3"; //KYPT7eyheXzSkoNG33JRnyt3"
 const TARGET_STORES = [
   "walmart",
   "safeway",
