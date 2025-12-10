@@ -1,9 +1,8 @@
-import * as FileSystem from 'expo-file-system';
+// Using legacy API for cross-platform compatibility (Android/iOS)
+import * as FileSystem from 'expo-file-system/legacy';
 import { searchProducts, ProductResult } from './cameraSearch';
 import { LocationData } from './locationService';
-
-// API Keys
-const GEMINI_API_KEY = "REDACTED";
+import { GEMINI_API_KEY, GEMINI_MODEL } from './env';
 
 export type ProcessImageResult = {
     productInfo: {
@@ -22,13 +21,19 @@ export type ProcessImageResult = {
  */
 export const getProductInfoFromImage = async (imagePath: string): Promise<{ name: string; brand?: string; size?: string; weight?: string; } | null> => {
     try {
+        if (!GEMINI_API_KEY) {
+            console.error('Gemini API key is not configured. Set EXPO_PUBLIC_GEMINI_API_KEY in your .env file.');
+            return null;
+        }
+
         // Read the image file and convert to base64
         const base64Image = await FileSystem.readAsStringAsync(imagePath, {
-            encoding: FileSystem.EncodingType.Base64,
+            // Use string literal to avoid undefined EncodingType on some platforms
+            encoding: 'base64',
         });
 
-        // Gemini API endpoint
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+        // Gemini API endpoint (v1, latest flash model)
+        const url = `https://generativelanguage.googleapis.com/v1/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
         // JSON payload for Gemini
         const payload = {
@@ -59,6 +64,8 @@ export const getProductInfoFromImage = async (imagePath: string): Promise<{ name
         });
         
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Gemini API error response:', errorText);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         

@@ -1,4 +1,5 @@
 import * as Location from 'expo-location';
+import { ORS_API_KEY } from './env';
 
 export interface LocationData {
   latitude: number;
@@ -42,6 +43,11 @@ export const calculateDistance = async (
   city: string // Add city parameter
 ): Promise<string> => {
   try {
+    if (!ORS_API_KEY) {
+      console.error('OpenRouteService API key is not configured. Set EXPO_PUBLIC_ORS_API_KEY in your .env file.');
+      return 'Distance unavailable';
+    }
+
     // Clean up store name and map to standard name
     const cleanStoreName = storeName.toLowerCase()
       .replace(/\./g, '') // Remove periods
@@ -59,7 +65,7 @@ export const calculateDistance = async (
     // First, use OpenRouteService's geocoding to find the store location
     console.log("city name:", city);
     const geocodeResponse = await fetch(
-      `https://api.openrouteservice.org/geocode/search?api_key=5b3ce3597851110001cf6248b1d138f1cc614c4dbe85e6a5dc894e01&text=${encodeURIComponent(mappedStoreName + ' ' + city)}&boundary.country=CA&layers=venue`
+      `https://api.openrouteservice.org/geocode/search?api_key=${ORS_API_KEY}&text=${encodeURIComponent(mappedStoreName + ' ' + city)}&boundary.country=CA&layers=venue`
     );
 
     if (!geocodeResponse.ok) {
@@ -90,7 +96,7 @@ export const calculateDistance = async (
       {
         method: 'POST',
         headers: {
-          'Authorization': '5b3ce3597851110001cf6248b1d138f1cc614c4dbe85e6a5dc894e01',
+          'Authorization': ORS_API_KEY,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({

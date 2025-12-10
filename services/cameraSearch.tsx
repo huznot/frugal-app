@@ -1,8 +1,6 @@
 import { LocationData } from './locationService';
 import { calculateDistance } from './locationService';
-
-// API Key
-const API_KEY = "ekdtPHG5egMe4kdxxJkvoaK7"; //"KYPT7eyheXzSkoNG33JRnyt3"
+import { SEARCH_API_KEY } from './env';
 
 // Target stores to filter results
 const TARGET_STORES = [
@@ -62,10 +60,15 @@ const sortProductsByPrice = (products: ProductResult[]): ProductResult[] => {
  */
 export const searchProducts = async (query: string, userLocation?: LocationData): Promise<ProductResult[]> => {
     try {
+        if (!SEARCH_API_KEY) {
+            console.error('Search API key is not configured. Set EXPO_PUBLIC_SEARCH_API_KEY in your .env file.');
+            return [];
+        }
+
         const params = new URLSearchParams({
             engine: 'google_shopping',
             q: query,
-            api_key: API_KEY,
+            api_key: SEARCH_API_KEY,
             location: 'Winnipeg, Manitoba, Canada', // Always use Winnipeg for search
             google_domain: 'google.ca',
             gl: 'ca',
