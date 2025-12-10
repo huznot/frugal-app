@@ -38,7 +38,8 @@ export const getCurrentLocation = async (): Promise<LocationData> => {
 
 export const calculateDistance = async (
   origin: LocationData,
-  storeName: string
+  storeName: string,
+  city: string // Add city parameter
 ): Promise<string> => {
   try {
     // Clean up store name and map to standard name
@@ -56,8 +57,9 @@ export const calculateDistance = async (
     console.log('User location:', origin);
 
     // First, use OpenRouteService's geocoding to find the store location
+    console.log("city name:", city);
     const geocodeResponse = await fetch(
-      `https://api.openrouteservice.org/geocode/search?api_key=5b3ce3597851110001cf6248b1d138f1cc614c4dbe85e6a5dc894e01&text=${encodeURIComponent(mappedStoreName + ' Winnipeg')}&boundary.country=CA&layers=venue`
+      `https://api.openrouteservice.org/geocode/search?api_key=5b3ce3597851110001cf6248b1d138f1cc614c4dbe85e6a5dc894e01&text=${encodeURIComponent(mappedStoreName + ' ' + city)}&boundary.country=CA&layers=venue`
     );
 
     if (!geocodeResponse.ok) {
@@ -128,4 +130,4 @@ const formatDistance = (distance: number): string => {
   } else {
     return `${distance.toFixed(1)}km`;
   }
-}; 
+};

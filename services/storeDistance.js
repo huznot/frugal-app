@@ -3,7 +3,7 @@ import axios from 'axios';
 import haversine from 'haversine';
 import * as Location from 'expo-location';
 
-const getCurrentLocation = async () => {
+export const getCurrentLocation = async () => {
     try {
         // Request location permissions
         const { status } = await Location.requestForegroundPermissionsAsync();
@@ -23,13 +23,10 @@ const getCurrentLocation = async () => {
     }
 };
 
-export const findNearestStore = async (storeName, city) => {
+export const calculateDistance = async (origin, storeName, city) => {
     console.log(`City passed to findNearestStore: ${city}`);
 
     try {
-        const { latitude, longitude } = await getCurrentLocation();
-        const currentLocation = { latitude, longitude };
-
         const response = await axios.get(`https://nominatim.openstreetmap.org/search?q=${storeName},${city}&format=json&addressdetails=1&limit=10`);
         const locations = response.data;
 
@@ -43,11 +40,21 @@ export const findNearestStore = async (storeName, city) => {
                 latitude: parseFloat(loc.lat),
                 longitude: parseFloat(loc.lon)
             };
-            const distance = haversine(currentLocation, storeLocation, { unit: 'km' });
+            const distance = haversine(origin, storeLocation, { unit: 'km' });
             minDistance = Math.min(minDistance, distance);
         });
 
         return `${minDistance.toFixed(1)} km`;
+    } catch (error) {
+        return `Error finding store: ${error.message}`;
+    }
+};
+
+export const findNearestStore = async (storeName, city) => {
+    try {
+        const origin = await getCurrentLocation();
+        // Pass city to calculateDistance
+        return await calculateDistance(origin, storeName, city);
     } catch (error) {
         return `Error finding store: ${error.message}`;
     }

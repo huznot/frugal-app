@@ -2,7 +2,7 @@ import { LocationData } from './locationService';
 import { calculateDistance } from './locationService';
 
 // API Key
-const API_KEY = "KYPT7eyheXzSkoNG33JRnyt3"; //"KYPT7eyheXzSkoNG33JRnyt3"
+const API_KEY = "ekdtPHG5egMe4kdxxJkvoaK7"; //"KYPT7eyheXzSkoNG33JRnyt3"
 
 // Target stores to filter results
 const TARGET_STORES = [

@@ -15,19 +15,19 @@ const slides = [
     id: 1,
     title: 'Welcome to Frugal',
     description: 'Scan a product to find the best deals on your favorite products',
-    image: require('../assets/barcode-scan.png'),
+    image: require('../assets/barcode_scan.png'),
   },
   {
     id: 2,
     title: 'Camera Access',
     description: 'We need camera permission to scan an item and help you save money',
-    image: require('../assets/camera-permission.png'),
+    image: require('../assets/camera_permission.png'),
   },
   {
     id: 3,
     title: 'Location Access',
     description: 'We need your location to show you the closest stores and best deals near you',
-    image: require('../assets/location-permission.png'),
+    image: require('../assets/location_permission.jpg'),
     hasInput: true,
   },
   {

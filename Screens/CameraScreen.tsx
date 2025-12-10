@@ -103,6 +103,15 @@ export default function CameraScreen({ navigation }: Props) {
       setLoading(false);
     }
   };
+  const cleanStoreName = (storeName: string): string => {
+  // Remove unwanted prefixes or suffixes
+  return storeName
+    .replace(/^voila by\s*/i, '') // Remove "voila by" at the start
+    .replace(/\.ca$/i, '') // Remove ".ca" at the end
+    .replace(/^doordash -\s*/i, '') // Remove "doordash - " at the start
+    .trim(); // Trim any extra spaces
+};
+
 
   const takePicture = async () => {
     if (!cameraReady) return;
@@ -133,7 +142,7 @@ export default function CameraScreen({ navigation }: Props) {
       const productsWithDistances = await Promise.all(
         processResult.storeResults.map(async (product) => {
           try {
-            const cleanedSeller = product.seller.trim(); // Clean the seller name if needed
+            const cleanedSeller = cleanStoreName(product.seller); // Clean the store name
             console.log(`Calling findNearestStore with city: ${city}`); // Debug log
             const distance = await findNearestStore(cleanedSeller, city); // Pass city here
             return { ...product, distance };

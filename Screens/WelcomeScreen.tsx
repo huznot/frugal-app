@@ -11,7 +11,7 @@ export default function WelcomeScreen({ navigation }: Props) {
     <View style={styles.container}>
       <View style={styles.logoContainer}>
         <Image
-          source={require('../assets/grocery-bag.png')}
+          source={require('../assets/grocery_bag.png')}
           style={styles.logo}
         />
         <Text style={styles.title}>Frugal</Text>
