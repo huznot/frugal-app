@@ -2,6 +2,8 @@
 
 > a camera-first price finder. snap a product, we ask gemini what it is, then search shopping results and map distances.
 
+![Frugal Logo](assets/adaptive_icon.png)
+
 ## contents
 - what this repo does
 - quick start
