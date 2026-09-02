@@ -1,6 +1,6 @@
 # frugal (react native + expo)
 
-> a camera-first price finder. snap a product, we ask gemini what it is, then search shopping results and map distances.
+> a camera-first price finder. snap a product, we ask gemini what it is, then search shopping results and map distances. recieved $1,000 in funding and mentorship from riddeu hall foundaiton
 
 ![Frugal Logo](assets/adaptive_icon.png)
 
