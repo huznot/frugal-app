@@ -36,3 +36,10 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# proxy
+proxy/node_modules/
+proxy/.wrangler/
+
+# generated store data (rebuild with scripts/build-stores-db.py)
+proxy/data/stores-*.sql

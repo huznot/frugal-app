@@ -1,0 +1,42 @@
+name = "frugal-proxy"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+
+# Don't keep request logs: we never want photos or locations persisted.
+[observability]
+enabled = false
+
+[vars]
+# Fastest vision model. Change here if Google releases a faster "flash-lite" model.
+GEMINI_MODEL = "gemini-2.5-flash-lite"
+
+# 30 requests / minute per client IP (Workers Rate Limiting API).
+[[ratelimits]]
+name = "LIMITER"
+namespace_id = "1001"
+simple = { limit = 60, period = 60 }
+
+# Secrets (set with `npx wrangler secret put NAME`, never commit them):
+#   BRIGHTDATA_API_KEY    - Bright Data API key (store prices; recommended, 5k free requests/month)
+#   BRIGHTDATA_ZONE       - optional, your SERP API zone name if not "serp_api1"
+#   SERPAPI_KEY           - serpapi.com key (backup provider, used if Bright Data fails)
+#   SEARCHAPI_KEY         - searchapi.io key (optional third provider)
+#   GEMINI_API_KEY        - Google AI Studio key (use a paid-tier project for EU/UK users)
+#   APP_KEY               - any random string; must match EXPO_PUBLIC_API_APP_KEY in the app
+#   KROGER_CLIENT_ID      - optional, from developer.kroger.com (US prices)
+#   KROGER_CLIENT_SECRET  - optional
+
+# Cloudflare Workers AI: understands searches, ranks results, identifies product photos. No API key needed.
+[ai]
+binding = "AI"
+
+# Lets the worker hand the slow AI refinement to a fresh request of itself (own call budget).
+[[services]]
+binding = "SELF"
+service = "frugal-proxy"
+
+# Frugal's own store database (Overture Maps Places; see scripts/build-stores-db.py)
+[[d1_databases]]
+binding = "STORES_DB"
+database_name = "frugal-stores"
+database_id = "581504c8-53c9-4842-b679-68f044008d4b"

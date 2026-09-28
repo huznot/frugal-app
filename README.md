@@ -1,79 +1,99 @@
-# frugal (react native + expo)
+# frugal
 
-> a camera-first price finder. snap a product, we ask gemini what it is, then search shopping results and map distances.
+find the cheapest groceries near you. scan or search a product, see prices at stores around you, nutrition facts, and a map of nearby stores.
 
-## contents
-- what this repo does
-- quick start
-- env vars you need
-- getting api keys
-- running the app
-- troubleshooting
+## what's in here
 
-## about
-- made for my ptec (pembina trails early college) mentorship project
-## what this repo does
-- capture a photo, describe it with gemini, query shopping results, and (optionally) measure distance to stores.
-- built with expo sdk 54, react native 0.81, typescript.
-- location + camera permissions are required for full functionality.
+- `src/` the app (expo / react native)
+- `proxy/` our small server on cloudflare. it gets prices, runs the ai, and holds the api keys so they never go in the app
+- `scripts/` helper scripts (legal pages, store logos, store database)
+- `docs/` the privacy policy, terms and licences pages
 
-## quick start
-1) install deps
-   ```sh
-   npm install
-   ```
-2) copy env template
-   ```sh
-   cp .env.example .env
-   ```
-3) fill in api keys (see below).
-4) run
-   ```sh
-   npm start
-   ```
-   - press `a` for android emulator/device, `i` for ios simulator (mac), or scan the qr code with expo go.
+## run the app
 
-## env vars you need
-put these in `.env` (see `.env.example`):
+```sh
+npm install
+npm run go
 ```
-EXPO_PUBLIC_SEARCH_API_KEY=...
-EXPO_PUBLIC_GEMINI_API_KEY=...
-EXPO_PUBLIC_ORS_API_KEY=...
-EXPO_PUBLIC_GEMINI_MODEL=gemini-2.5-flash
+
+scan the qr code with your phone (expo go). the app talks to the live server, so you don't need to run anything else.
+
+## the server
+
+it's live at `https://frugal-proxy.frugalapp.workers.dev`.
+
+to change it, edit `proxy/src`, then:
+
+```sh
+cd proxy
+npm install
+npx wrangler deploy
 ```
-- `EXPO_PUBLIC_...` vars are bundled into the client. if you need to keep keys truly secret, proxy through a backend instead of calling apis directly from the app.
 
-## getting api keys
-- searchapi.io (google shopping):
-  - create an account at https://www.searchapi.io/.
-  - grab your api key from the dashboard and set `EXPO_PUBLIC_SEARCH_API_KEY`.
+keys live in cloudflare, not in the code. to add or change one:
 
-- google generative language (gemini):
-  - in google cloud console, enable **generative language api** for your project.
-  - create an api key (apis & services -> credentials).
-  - list available models for your key:
-    ```sh
-    curl "https://generativelanguage.googleapis.com/v1/models?key=$EXPO_PUBLIC_GEMINI_API_KEY"
-    ```
-  - pick a `name` value (e.g., `models/gemini-2.5-flash`, `models/gemini-1.5-pro`).
-  - set `EXPO_PUBLIC_GEMINI_MODEL` to the name without the `models/` prefix (example: `gemini-2.5-flash`).
+```sh
+npx wrangler secret put BRIGHTDATA_API_KEY
+```
 
-- openrouteservice (distance + geocoding):
-  - sign up at https://openrouteservice.org/dev/ and create a token.
-  - set `EXPO_PUBLIC_ORS_API_KEY` to that token.
+keys it uses: `BRIGHTDATA_API_KEY`, `BRIGHTDATA_ZONE`, `SERPAPI_KEY`, `GEMINI_API_KEY`, `APP_KEY`. for local testing put them in `proxy/.dev.vars` (git ignores it) and run `npm run dev`.
 
-## running the app
-- start expo: `npm start`
-- for android: `npm run android` (or press `a` in the expo cli)
-- for ios (mac): `npm run ios` (or press `i`)
-- for web: `npm run web` (note: camera/device apis may be limited in browser)
+## where the data comes from
 
-## troubleshooting
-- 404 from gemini: make sure the generative language api is enabled and `EXPO_PUBLIC_GEMINI_MODEL` matches a model your key can use (see curl command above).
-- distance shows “distance unavailable”: check `EXPO_PUBLIC_ORS_API_KEY` and that location permission was granted.
-- search results empty: verify `EXPO_PUBLIC_SEARCH_API_KEY`, and remember the app filters to a set of target stores.
-- env changes not picked up: stop expo and restart so it reloads `.env`.
+- prices: google shopping through bright data (serpapi as backup)
+- products and nutrition: open food facts
+- barcodes: open library (books), open food facts, upcitemdb
+- stores: overture maps, loaded into our own database
+- store logos: wikidata
+- ai (understanding searches, ranking, photo scan): cloudflare workers ai
 
-## repo hygiene
-- `.env` is git-ignored; commit `.env.example` only.
-- keys in `.env` are for local/dev; rotate them if they were ever committed before.***
+## update the store database
+
+run this every few months to pick up new or closed stores:
+
+```sh
+pip install duckdb
+python scripts/build-stores-db.py CA
+cd proxy
+npx wrangler d1 execute frugal-stores --remote --file=data/stores-CA.sql
+```
+
+use `US` instead of `CA` to add the united states.
+
+## legal pages
+
+they're live at:
+
+- https://frugal-legal.pages.dev/privacy-policy
+- https://frugal-legal.pages.dev/terms
+- https://frugal-legal.pages.dev/licenses
+
+to change them, edit `src/legal/business.json` or `src/legal/documents.json`, then:
+
+```sh
+npm run legal
+cd proxy
+npx wrangler pages deploy ../docs --project-name frugal-legal --branch main
+```
+
+## publish to google play
+
+1. build: `npx eas-cli build -p android --profile production`
+2. in google play console, create the app and upload the `.aab` file from the build
+3. privacy policy link: `https://frugal-legal.pages.dev/privacy-policy`
+4. data safety form:
+   - location (approximate and precise): collected, not shared, used for app features, optional
+   - photos: only when you use photo scan, not stored, used for app features
+   - no accounts, no ads, no tracking, data is encrypted in transit, users can delete their data in settings
+5. content rating: shopping / reference app
+6. target audience: 13 and up
+7. add screenshots from your phone, plus the icon and feature graphic in `store-assets/` (remake them with `python scripts/make-store-graphics.py`)
+
+after the first upload you can send new builds with `npx eas-cli submit -p android`.
+
+## handy commands
+
+- `npm run go` start the app for expo go
+- `npm run typecheck` check for type errors
+- `npm run legal` rebuild the legal pages
+- `npm run brands` refresh the store brand list

@@ -1,0 +1,265 @@
+{
+  "privacy": {
+    "title": "Privacy Policy",
+    "intro": "This Privacy Policy explains how {{appName}} (\"we\", \"us\") handles information when you use the {{appName}} mobile app. The short version: we don't have accounts, we don't run ads or analytics, we don't sell or share your data for advertising, and your lists and prices stay on your phone.",
+    "sections": [
+      {
+        "heading": "1. Who we are",
+        "body": [
+          "{{appName}} is operated by {{legalEntity}}. You can reach us at {{supportEmail}} about anything in this policy."
+        ]
+      },
+      {
+        "heading": "2. Information stored only on your device",
+        "body": [
+          "The following is saved locally on your device and is never uploaded to us:"
+        ],
+        "bullets": [
+          "Your shopping list, the prices you log (\"price book\"), recent searches and recently viewed products.",
+          "Your settings, including the location you chose (city/postal code or GPS coordinates) and search radius.",
+          "Whether you completed onboarding and accepted these terms."
+        ],
+        "after": [
+          "You can erase all of it at any time in Settings → Delete all my data, or by uninstalling the app."
+        ]
+      },
+      {
+        "heading": "3. Information sent to third-party services to make features work",
+        "body": [
+          "To show products, prices and stores, the app sends the minimum information needed directly to these services. We do not attach any identifier about you to these requests."
+        ],
+        "bullets": [
+          "Open Food Facts (Open Food Facts association, France): the barcode you scan or the words you search, to return product details and nutrition. openfoodfacts.org/privacy",
+          "Open Prices (Open Food Facts): the product barcode, to return community-reported prices. prices.openfoodfacts.org",
+          "Our server (Frugal): your approximate location, rounded to about 1 km, and your search radius, to look up nearby grocery stores in our store database. Map tiles are loaded from OpenFreeMap (Android and web), which receives the map area you view.",
+          "Wikidata and Wikimedia Commons (Wikimedia Foundation): the Wikidata ID of a store chain (for example the one for \"Walmart\"), to download that chain's logo. No location or personal information is included. foundation.wikimedia.org/wiki/Policy:Privacy_policy",
+          "Your device's geocoder (Google on Android, Apple on iOS): the city/postal code you type or your coordinates, to convert between addresses and map positions.",
+          "Google Maps SDK (Android) / Apple Maps (iOS): used to display the map. Google or Apple may collect device and usage information under their own privacy policies. policies.google.com/privacy"
+        ],
+        "after": [
+          "These providers receive your IP address as part of any internet request. Their handling of data is governed by their own policies."
+        ]
+      },
+      {
+        "heading": "4. Features that use our server",
+        "body": [
+          "Some features route through a small server we operate so that our API keys are not stored in the app:"
+        ],
+        "bullets": [
+          "Store prices: the product name or barcode you search for, and your city (for example \"Winnipeg, Manitoba, Canada\"), are sent through our server to a search data provider (Bright Data or SerpApi) to retrieve Google Shopping listings. Your precise location is never sent. Results for the same search are cached on our server for up to 6 hours and are not linked to you.",
+          "Photo identification: when you take a photo in Photo mode, a reduced-size copy of the photo is sent through our server to Google's Gemini API to identify the product. We do not store the photo. Please don't photograph people or personal documents. Google processes the image under the Gemini API terms and may retain it for a limited period for abuse monitoring.",
+          "Kroger prices (United States only): your approximate location (about 100 metres) and the product barcode are sent through our server to the official Kroger API to find nearby Kroger-family store prices."
+        ],
+        "after": [
+          "Our server is hosted by Cloudflare. Like any web server it briefly processes your IP address to deliver the response and prevent abuse (rate limiting). We do not keep request logs containing your images, and we do not build profiles."
+        ]
+      },
+      {
+        "heading": "5. Permissions",
+        "bullets": [
+          "Camera: used only while the scanner is open, to read barcodes (processed on your device) and, if you choose Photo mode, to take a photo of a product.",
+          "Location (while using the app): used to find stores and prices near you. It is optional — you can type a city or postal code instead. We never access location in the background."
+        ]
+      },
+      {
+        "heading": "6. What we don't do",
+        "bullets": [
+          "No user accounts, no advertising, no advertising IDs, no analytics or tracking SDKs.",
+          "We do not sell or \"share\" personal information (as those terms are defined under the California Consumer Privacy Act) and do not use it for targeted advertising.",
+          "We do not knowingly collect information from children under 13 (or the minimum age in your country). The app is not directed to children."
+        ]
+      },
+      {
+        "heading": "7. Legal bases (EU/UK users)",
+        "body": [
+          "Where the GDPR or UK GDPR applies, we rely on your consent (location and camera permissions, photo identification) and our legitimate interest in providing the features you request (product lookups). You can withdraw consent at any time by revoking permissions in your device settings."
+        ]
+      },
+      {
+        "heading": "8. Your rights",
+        "body": [
+          "Depending on where you live (including under Canada's PIPEDA, Quebec's Law 25, the GDPR/UK GDPR, and US state privacy laws), you may have rights to access, correct, delete or port your personal information, and to object to or restrict processing. Because we don't keep your data on our servers, most requests can be fulfilled instantly in the app via Settings → Delete all my data. For anything else, email {{supportEmail}}. You also have the right to complain to your local data protection authority (in Canada, the Office of the Privacy Commissioner of Canada)."
+        ]
+      },
+      {
+        "heading": "9. International transfers",
+        "body": [
+          "The third-party services above may process data in countries other than yours, including the United States and the European Union, which may have different data protection laws."
+        ]
+      },
+      {
+        "heading": "10. Security and retention",
+        "body": [
+          "Data on your device is protected by your device's security. Requests to third parties are made over encrypted HTTPS connections. We retain no personal information on our servers beyond the moment needed to process a request."
+        ]
+      },
+      {
+        "heading": "11. Changes",
+        "body": [
+          "If we change this policy materially, we'll update the effective date and ask you to review it in the app before continuing."
+        ]
+      },
+      {
+        "heading": "12. Contact",
+        "body": [
+          "{{legalEntity}} — {{supportEmail}}. Our privacy contact is the person responsible for this policy."
+        ]
+      }
+    ]
+  },
+  "terms": {
+    "title": "Terms of Service",
+    "intro": "These Terms of Service (\"Terms\") are an agreement between you and {{legalEntity}} for your use of the {{appName}} app. By using the app you agree to these Terms. If you don't agree, please don't use the app.",
+    "sections": [
+      {
+        "heading": "1. Who can use Frugal",
+        "body": [
+          "You must be at least 13 years old (or the minimum age required in your country) to use the app. If you are under the age of majority where you live, you should have a parent or guardian's permission."
+        ]
+      },
+      {
+        "heading": "2. What the app does — and doesn't",
+        "body": [
+          "{{appName}} helps you look up grocery products, view nutrition information, find nearby stores and compare prices. It is an information tool. We do not sell products and are not a party to any purchase you make."
+        ],
+        "bullets": [
+          "Prices come from Google Shopping listings (retrieved through a third-party search provider), official retailer APIs where available, community contributors (Open Prices), or prices you enter. Listings may be for a slightly different size or variant, prices can be wrong or out of date, and in-store prices can differ from online listings. The price charged at checkout is the one that counts.",
+          "We are not affiliated with, endorsed by or sponsored by any retailer or brand shown in the app. Store names and product names are trademarks of their respective owners and are used only to identify them.",
+          "Store locations and opening hours come from OpenStreetMap and may be inaccurate."
+        ]
+      },
+      {
+        "heading": "3. Nutrition and allergen information — important",
+        "body": [
+          "Nutrition facts, ingredients, allergens and scores come from Open Food Facts, a collaborative database that anyone can edit. They may be incomplete, outdated or wrong, and products change their recipes. This information is for general reference only and is not medical, dietary or allergy advice. If you have an allergy, intolerance or medical condition, always read the product's physical label and consult a qualified professional. Do not rely on the app to decide whether a product is safe for you."
+        ]
+      },
+      {
+        "heading": "4. Your content",
+        "body": [
+          "Prices and list items you enter are stored on your device and belong to you. If you choose to contribute to Open Food Facts or Open Prices through their websites, their own terms apply and your contribution is published under their open licences."
+        ]
+      },
+      {
+        "heading": "5. Acceptable use",
+        "body": [
+          "You agree not to: misuse the app or our server (for example by scraping, overloading, or trying to bypass rate limits or security); reverse engineer the app except where the law allows; use the app for anything unlawful; or photograph people or sensitive documents with the Photo feature."
+        ]
+      },
+      {
+        "heading": "6. Third-party services and data",
+        "body": [
+          "The app relies on third-party services and open data listed in Settings → Data sources & licences. Those services have their own terms, and their data remains subject to their licences (for example, the Open Database License for Open Food Facts, Open Prices and OpenStreetMap data). We aren't responsible for third-party services, and they may change or stop at any time."
+        ]
+      },
+      {
+        "heading": "7. Our intellectual property",
+        "body": [
+          "The app's design, code and branding belong to {{legalEntity}}. We grant you a personal, non-exclusive, non-transferable, revocable licence to use the app on devices you own or control, subject to these Terms and the rules of the store you downloaded it from."
+        ]
+      },
+      {
+        "heading": "8. Disclaimers",
+        "body": [
+          "To the maximum extent permitted by law, the app is provided \"as is\" and \"as available\", without warranties of any kind, whether express or implied, including warranties of accuracy, merchantability, fitness for a particular purpose and non-infringement. We don't guarantee the app will be uninterrupted or error-free, or that any price or product information is accurate."
+        ]
+      },
+      {
+        "heading": "9. Limitation of liability",
+        "body": [
+          "To the maximum extent permitted by law, {{legalEntity}} will not be liable for any indirect, incidental, special, consequential or punitive damages, or for any loss of money, savings, data or goodwill, arising from your use of the app or reliance on any information in it. Our total liability for any claim relating to the app is limited to the greater of the amount you paid us for the app in the past 12 months or CAD $50. The app is currently free."
+        ]
+      },
+      {
+        "heading": "10. Your consumer rights",
+        "body": [
+          "Nothing in these Terms limits any rights you have under consumer protection laws that cannot be waived by contract, including in Quebec, the EU and the UK. Where the law doesn't allow a disclaimer or limitation, it applies only to the extent permitted."
+        ]
+      },
+      {
+        "heading": "11. Ending use",
+        "body": [
+          "You can stop using the app at any time by uninstalling it. We may suspend access to our server features if they're being misused, or discontinue the app."
+        ]
+      },
+      {
+        "heading": "12. Governing law",
+        "body": [
+          "These Terms are governed by the laws of {{jurisdiction}} and the applicable federal laws of Canada, without regard to conflict-of-law rules. If you're a consumer, you may also have the benefit of mandatory laws and courts of the place where you live."
+        ]
+      },
+      {
+        "heading": "13. Changes to these Terms",
+        "body": [
+          "We may update these Terms. If a change is material, we'll ask you to review and accept the new Terms in the app before you continue using it."
+        ]
+      },
+      {
+        "heading": "14. Contact",
+        "body": [
+          "Questions? Email {{supportEmail}}."
+        ]
+      }
+    ]
+  },
+  "licenses": {
+    "title": "Data sources & licences",
+    "intro": "{{appName}} is built on open data and services. Thank you to their communities.",
+    "sections": [
+      {
+        "heading": "Open Food Facts",
+        "body": [
+          "Product names, images, ingredients, allergens, nutrition facts, Nutri-Score and NOVA data. Database available under the Open Database License (ODbL); individual contents under the Database Contents License; product images under Creative Commons Attribution-ShareAlike (CC BY-SA). © Open Food Facts contributors — openfoodfacts.org"
+        ]
+      },
+      {
+        "heading": "Open Prices",
+        "body": [
+          "Community-reported prices. Data available under the Open Database License (ODbL). © Open Food Facts contributors — prices.openfoodfacts.org"
+        ]
+      },
+      {
+        "heading": "Stores & maps",
+        "body": [
+          "Store locations from Overture Maps Places (CDLA-Permissive-2.0; records derived from OpenStreetMap are © OpenStreetMap contributors, ODbL) — overturemaps.org. Map tiles on Android and the web by OpenFreeMap using OpenMapTiles, © OpenStreetMap contributors."
+        ]
+      },
+      {
+        "heading": "Store logos",
+        "body": [
+          "Store logos are looked up on Wikidata (CC0) using brand identifiers from OpenStreetMap and the Name Suggestion Index (BSD-3-Clause), and displayed from Wikimedia Commons, which only hosts public-domain or freely licensed files. Logos are trademarks of their respective owners, shown only to identify stores; their use does not imply endorsement."
+        ]
+      },
+      {
+        "heading": "Map display",
+        "body": [
+          "Maps by Apple (iOS). On Android and the web, maps are drawn with MapLibre GL (BSD-3-Clause) and OpenFreeMap tiles."
+        ]
+      },
+      {
+        "heading": "Prices & optional services",
+        "body": [
+          "Store prices are Google Shopping listings retrieved through Bright Data or SerpApi. Photo identification uses the Google Gemini API. Kroger prices (US only) use the official Kroger Developer API. All are accessed through our server."
+        ]
+      },
+      {
+        "heading": "Nutri-Score & NOVA",
+        "body": [
+          "Nutri-Score grades and NOVA groups are computed by Open Food Facts and shown for information only. Nutri-Score is a trademark of Santé publique France; {{appName}} is not affiliated with or endorsed by Santé publique France."
+        ]
+      },
+      {
+        "heading": "Software",
+        "body": [
+          "Built with React Native and Expo (MIT). Map rendering on web: MapLibre GL JS (BSD-3-Clause). Icons: Ionicons (MIT). Fonts: Fredoka and Poppins (SIL Open Font License 1.1). Other open-source packages are listed in the app's package manifest with their licences."
+        ]
+      },
+      {
+        "heading": "Store names",
+        "body": [
+          "Store and brand names are trademarks of their respective owners and are used only to identify stores. {{appName}} is not affiliated with any retailer."
+        ]
+      }
+    ]
+  }
+}
