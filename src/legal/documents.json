@@ -261,5 +261,40 @@
         ]
       }
     ]
+  },
+  "deleteData": {
+    "title": "Delete your data",
+    "intro": "{{appName}} has no accounts and keeps your data on your phone. Here is how to delete it, and what happens to the little that reaches our server.",
+    "sections": [
+      {
+        "heading": "How to delete your data",
+        "bullets": [
+          "Open {{appName}}.",
+          "Go to Settings.",
+          "Tap \"Delete all my data\" and confirm."
+        ],
+        "after": [
+          "This removes everything {{appName}} stores on your phone right away: your shopping list, prices you saved, your search history, recently viewed products, your saved location and your settings. Uninstalling the app also deletes all of it."
+        ]
+      },
+      {
+        "heading": "Data on our server",
+        "body": [
+          "We never create an account or profile for you, and nothing we receive is linked to your name, email, phone number or device. Because of that there is nothing on our server we could find and delete for one person, but it also expires on its own:"
+        ],
+        "bullets": [
+          "Photos you scan are identified and discarded immediately. They are never stored.",
+          "Search results (the search words, your city and the prices found) are kept in a shared cache for up to 6 hours so repeat searches are fast, then deleted automatically.",
+          "Product images from search results are kept for up to 24 hours, then deleted automatically.",
+          "Your approximate location is used to find nearby stores. Store lists for an area are cached for up to 7 days, without any information about who asked."
+        ]
+      },
+      {
+        "heading": "Questions",
+        "body": [
+          "If you have questions or want us to confirm anything about your data, email {{supportEmail}}. We reply within 30 days."
+        ]
+      }
+    ]
   }
 }

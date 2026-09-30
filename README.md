@@ -76,21 +76,6 @@ cd proxy
 npx wrangler pages deploy ../docs --project-name frugal-legal --branch main
 ```
 
-## publish to google play
-
-1. build: `npx eas-cli build -p android --profile production`
-2. in google play console, create the app and upload the `.aab` file from the build
-3. privacy policy link: `https://frugal-legal.pages.dev/privacy-policy`
-4. data safety form:
-   - location (approximate and precise): collected, not shared, used for app features, optional
-   - photos: only when you use photo scan, not stored, used for app features
-   - no accounts, no ads, no tracking, data is encrypted in transit, users can delete their data in settings
-5. content rating: shopping / reference app
-6. target audience: 13 and up
-7. add screenshots from your phone, plus the icon and feature graphic in `store-assets/` (remake them with `python scripts/make-store-graphics.py`)
-
-after the first upload you can send new builds with `npx eas-cli submit -p android`.
-
 ## handy commands
 
 - `npm run go` start the app for expo go

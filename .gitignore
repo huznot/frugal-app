@@ -43,3 +43,6 @@ proxy/.wrangler/
 
 # generated store data (rebuild with scripts/build-stores-db.py)
 proxy/data/stores-*.sql
+
+# private play store notes
+PLAY_STORE.md
