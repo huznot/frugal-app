@@ -1,0 +1,167 @@
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <filter id="mbA" x="-50%" y="-20%" width="200%" height="140%"><feGaussianBlur id="mbA-n" in="SourceGraphic" stdDeviation="0 0" /></filter>
+      <filter id="mbB" x="-50%" y="-20%" width="200%" height="140%"><feGaussianBlur id="mbB-n" in="SourceGraphic" stdDeviation="0 0" /></filter>
+    </defs>
+  </svg>
+
+  <div id="bgColor" class="clip layer" data-start="0" data-duration="14.6" data-track-index="0">
+    <div id="dots" data-layout-allow-overflow></div>
+  </div>
+
+  <div id="world" class="layer">
+    <!-- ACT 1 · HOOK -->
+    <section id="a1" class="clip layer" data-start="0" data-duration="2.95" data-track-index="1">
+      <div id="a1-items" class="layer">
+        <div class="item" id="it1">
+          <div class="it-tile" style="color:#3F7BFF"><span class="mci">&#xf01aa;</span></div>
+          <div class="it-word">Milk</div>
+          <div class="tag it-tag"><span class="hole"></span><span class="tp">$6.29</span></div>
+        </div>
+        <div class="item" id="it2">
+          <div class="it-tile" style="color:#D39A14"><span class="mci">&#xf0aaf;</span></div>
+          <div class="it-word">Eggs</div>
+          <div class="tag it-tag"><span class="hole"></span><span class="tp">$5.49</span></div>
+        </div>
+        <div class="item" id="it3">
+          <div class="it-tile" style="color:#FF5050"><span class="mci">&#xf0cee;</span></div>
+          <div class="it-word">Bread</div>
+          <div class="tag it-tag"><span class="hole"></span><span class="tp">$4.99</span></div>
+        </div>
+        <div id="stamp"><span>Overpaying?</span></div>
+      </div>
+      <div id="a1-lines" class="copy">
+        <div class="hero"><span class="w" id="a1-w1">Same</span> <span class="w" id="a1-w2">groceries.</span></div>
+        <div class="hero"><span class="w" id="a1-w3">Better</span> <span class="w hl" id="a1-w4"><span class="hl-bar" id="a1-bar"></span><span class="hl-txt">price.</span></span></div>
+      </div>
+    </section>
+
+    <!-- ACT 2 · SCAN -->
+    <section id="a2" class="clip layer" data-start="2.62" data-duration="2.93" data-track-index="2">
+      <div id="a2-move" class="layer">
+        <div class="copy cap" id="cap2">
+          <div class="eyebrow">Step 1</div>
+          <div class="hero"><span class="w" id="c2-w1">Scan</span> <span class="w hl" id="c2-w2"><span class="hl-bar" id="c2-bar"></span><span class="hl-txt">it.</span></span></div>
+          <div class="cap-sub" id="c2-sub">Any barcode. Any store.</div>
+        </div>
+        <div id="phoneAnchor">
+          <div id="phoneMove">
+            <div id="ring"></div>
+            <div id="phone">
+              <div id="screen">
+                <div class="status"><span>9:41</span><span class="sb-r"><i></i><i></i><i></i></span></div>
+                <div class="scan-pill">Point at a barcode</div>
+                <div id="vf">
+                  <img id="vf-img" src="assets/img/milk.jpg" alt="" />
+                  <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+                  <div id="scanline"></div>
+                  <div id="vf-flash"></div>
+                </div>
+                <div id="scanCheck"><span class="ion">&#xf21d;</span></div>
+                <div id="toast" class="card">
+                  <div class="badge" style="background:#0E7A51">GG</div>
+                  <div class="t-mid">
+                    <div class="t-name">Milk2Go 2% Partly Skimmed</div>
+                    <div class="t-sub">Found at 4 stores nearby</div>
+                  </div>
+                  <div class="ptag"><span class="hole"></span>$4.49</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ACT 3 · COMPARE -->
+    <section id="a3" class="clip layer" data-start="5.55" data-duration="4.58" data-track-index="3">
+      <div id="a3-move" class="layer">
+        <div class="copy cap" id="cap3">
+          <div class="eyebrow">Step 2</div>
+          <div class="hero"><span class="w" id="c3-w1">Every price</span></div>
+          <div class="hero"><span class="w hl" id="c3-w2"><span class="hl-bar" id="c3-bar"></span><span class="hl-txt">near you.</span></span></div>
+        </div>
+        <div id="prodChip" class="card">
+          <div class="pc-img"><img src="assets/img/milk.jpg" alt="" /></div>
+          <div class="pc-mid"><div class="pc-name">Milk2Go 2% Milk</div><div class="pc-sub">473 mL · 4 stores</div></div>
+          <div class="grade"><b>B</b></div>
+        </div>
+        <div id="rows">
+          <div class="row" id="r0"><div class="badge" style="background:#D93025">MM</div><div class="r-mid"><div class="r-name">MapleMart</div><div class="r-sub">0.8 km away</div></div><div class="r-price">$6.29</div></div>
+          <div class="row" id="r1"><div class="badge" style="background:#3F7BFF">FB</div><div class="r-mid"><div class="r-name">Fresh Basket</div><div class="r-sub">1.4 km away</div></div><div class="r-price">$5.79</div></div>
+          <div class="row" id="r2"><div class="badge" style="background:#0E7A51">GG</div><div class="r-mid"><div class="r-name">Green Grocer</div><div class="r-sub">1.9 km away</div></div><div class="r-price" id="r2-price">$4.49</div><div class="best-ring" id="bestRing"></div><div class="sticker" id="bestSticker">BEST VALUE</div></div>
+          <div class="row" id="r3"><div class="badge" style="background:#FFC53D;color:#161616">VF</div><div class="r-mid"><div class="r-name">Value Foods</div><div class="r-sub">2.3 km away</div></div><div class="r-price">$5.49</div></div>
+          <div id="confA" class="conf"></div>
+        </div>
+        <div id="callout">
+          <div class="tag big" id="bigTag"><span class="hole"></span><span class="tp" id="bigTagNum">$6.29</span></div>
+          <div id="savePill">You save $1.80</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- stripe wipe -->
+    <section id="stripes" class="clip layer" data-start="9.6" data-duration="1.0" data-track-index="4">
+      <div class="stripe" id="st1" style="background:#FF5050"></div>
+      <div class="stripe" id="st2" style="background:#FFC53D"></div>
+      <div class="stripe" id="st3" style="background:#16A870"></div>
+    </section>
+
+    <!-- ACT 4 · SAVE -->
+    <section id="a4" class="clip layer" data-start="10.13" data-duration="4.47" data-track-index="5">
+      <div id="listCard" class="card">
+        <div class="l-head"><div class="l-title">My list</div><div class="l-count" id="lCount">0 / 6</div></div>
+        <div class="item-row" id="i0"><div class="box"><span class="ion">&#xf21d;</span></div><div class="i-name" data-layout-allow-occlusion>Milk 2%</div><div class="i-price">$4.49</div><div class="strike" data-layout-allow-occlusion></div></div>
+        <div class="item-row" id="i1"><div class="box"><span class="ion">&#xf21d;</span></div><div class="i-name" data-layout-allow-occlusion>Large eggs, 12</div><div class="i-price">$3.99</div><div class="strike" data-layout-allow-occlusion></div></div>
+        <div class="item-row" id="i2"><div class="box"><span class="ion">&#xf21d;</span></div><div class="i-name" data-layout-allow-occlusion>Whole wheat bread</div><div class="i-price">$2.79</div><div class="strike" data-layout-allow-occlusion></div></div>
+        <div class="item-row" id="i3"><div class="box"><span class="ion">&#xf21d;</span></div><div class="i-name" data-layout-allow-occlusion>Bananas</div><div class="i-price">$1.54</div><div class="strike" data-layout-allow-occlusion></div></div>
+        <div class="item-row" id="i4"><div class="box"><span class="ion">&#xf21d;</span></div><div class="i-name" data-layout-allow-occlusion>Ground coffee</div><div class="i-price">$8.99</div><div class="strike" data-layout-allow-occlusion></div></div>
+        <div class="item-row" id="i5"><div class="box"><span class="ion">&#xf21d;</span></div><div class="i-name" data-layout-allow-occlusion>Chicken breast</div><div class="i-price">$12.40</div><div class="strike" data-layout-allow-occlusion></div></div>
+        <div class="l-total"><span class="label">Total</span><div class="ptag"><span class="hole"></span>$34.20</div></div>
+      </div>
+      <div id="saved">
+        <div class="sv-label" id="svLabel">You saved</div>
+        <div class="sv-num" id="saveNum" data-layout-allow-overlap>$0.00</div>
+        <div class="sv-sub" id="svSub">on one grocery run</div>
+      </div>
+      <div id="confB" class="conf"></div>
+      <div id="bigBtn">
+        <div class="bb-ledge"></div>
+        <div class="bb-face" id="bbFace"><span class="ion">&#xf556;</span><span class="bb-txt">Scan &amp; save</span></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ACT 5 · CTA -->
+  <section id="cta" class="clip layer" data-start="14.0" data-duration="4.0" data-track-index="6">
+    <div id="burst"></div>
+    <div id="ctaDots"></div>
+    <div id="ctaInner">
+      <div id="appIcon"><div id="tileFrame"><img src="assets/img/app-tile.png" alt="Frugal" /></div></div>
+      <div id="wordmark"><span class="ch">F</span><span class="ch">r</span><span class="ch">u</span><span class="ch">g</span><span class="ch">a</span><span class="ch">l</span></div>
+      <div id="tagline"><span class="tw">Scan.</span> <span class="tw">Compare.</span> <span class="tw">Save.</span></div>
+      <div id="playWrap"><img id="playBadge" src="assets/img/play-badge.png" alt="Get it on Google Play" /><div id="sheen"></div></div>
+    </div>
+  </section>
+
+  <div id="flash" class="clip layer" data-start="0" data-duration="18" data-track-index="7"></div>
+
+  <audio id="bgm" src="assets/audio/music.wav" data-start="0" data-duration="18" data-track-index="10" data-volume="0.85"></audio>
+  <audio id="sfx-pop1" src="assets/sfx/pop.mp3" data-start="0.02" data-duration="0.7" data-track-index="11" data-volume="0.55"></audio>
+  <audio id="sfx-pop2" src="assets/sfx/pop.mp3" data-start="0.49" data-duration="0.7" data-track-index="12" data-volume="0.55"></audio>
+  <audio id="sfx-pop3" src="assets/sfx/pop.mp3" data-start="0.96" data-duration="0.7" data-track-index="11" data-volume="0.55"></audio>
+  <audio id="sfx-impact1" src="assets/sfx/impact.mp3" data-start="1.43" data-duration="1.4" data-track-index="12" data-volume="0.7"></audio>
+  <audio id="sfx-whoosh1" src="assets/sfx/whoosh.mp3" data-start="2.62" data-duration="0.6" data-track-index="13" data-volume="0.7"></audio>
+  <audio id="sfx-beep" src="assets/sfx/beep.mp3" data-start="4.24" data-duration="0.1" data-track-index="11" data-volume="0.8"></audio>
+  <audio id="sfx-whoosh2" src="assets/sfx/whoosh.mp3" data-start="5.1" data-duration="0.6" data-track-index="12" data-volume="0.7"></audio>
+  <audio id="sfx-pop4" src="assets/sfx/pop.mp3" data-start="5.88" data-duration="0.7" data-track-index="11" data-volume="0.4"></audio>
+  <audio id="sfx-pop5" src="assets/sfx/pop.mp3" data-start="6.35" data-duration="0.7" data-track-index="13" data-volume="0.4"></audio>
+  <audio id="sfx-whoosh3" src="assets/sfx/whoosh.mp3" data-start="7.02" data-duration="0.6" data-track-index="11" data-volume="0.6"></audio>
+  <audio id="sfx-impact2" src="assets/sfx/impact.mp3" data-start="7.99" data-duration="1.4" data-track-index="12" data-volume="0.65"></audio>
+  <audio id="sfx-sparkle1" src="assets/sfx/sparkle.mp3" data-start="8.0" data-duration="1.8" data-track-index="13" data-volume="0.45"></audio>
+  <audio id="sfx-whoosh4" src="assets/sfx/whoosh.mp3" data-start="9.65" data-duration="0.6" data-track-index="11" data-volume="0.7"></audio>
+  <audio id="sfx-chaching" src="assets/sfx/chaching.mp3" data-start="12.6" data-duration="1.2" data-track-index="12" data-volume="0.7"></audio>
+  <audio id="sfx-click" src="assets/sfx/click.mp3" data-start="14.05" data-duration="0.4" data-track-index="13" data-volume="0.9"></audio>
+  <audio id="sfx-whoosh5" src="assets/sfx/whoosh.mp3" data-start="14.1" data-duration="0.6" data-track-index="11" data-volume="0.6"></audio>
+  <audio id="sfx-impact3" src="assets/sfx/impact.mp3" data-start="14.55" data-duration="1.4" data-track-index="12" data-volume="0.6"></audio>
+  <audio id="sfx-sparkle2" src="assets/sfx/sparkle.mp3" data-start="16.3" data-duration="1.7" data-track-index="13" data-volume="0.4"></audio>

@@ -15,7 +15,7 @@ import { BORDER, fonts, radius, useTheme } from '../theme';
 import { useApp } from '../state/AppState';
 import { BarcodeIdentity, getProduct, lookupBarcode, offAddProductUrl, offProductUrl } from '../services/openFoodFacts';
 import { getPrices, PriceResult } from '../services/priceSearch';
-import { searchOffers, shoppingEnabled } from '../services/shopping';
+import { POLL_DELAYS, searchOffers, settled, shoppingEnabled } from '../services/shopping';
 import { formatDistance } from '../services/geo';
 import { openDirections, openWeb } from '../services/links';
 import { Nutrition, Offer, PriceObservation, Product } from '../services/types';
@@ -110,9 +110,9 @@ export default function ProductScreen({ navigation, route }: StackProps<'Product
       let res = await searchOffers(offerQuery, state.location, radius);
       if (!alive) return;
       setOffers(res.offers);
-      // Pick up the server's AI-refined ranking (best value for this product) when it lands.
-      for (const delay of [2500, 3000, 4000, 5000, 6000, 8000]) {
-        if (res.judged || !alive) break;
+      // Pick up the server's AI ranking (best value, cheapest), then the chains near you.
+      for (const delay of POLL_DELAYS) {
+        if (settled(res) || !alive) break;
         await new Promise((r) => setTimeout(r, delay));
         res = await searchOffers(offerQuery, state.location, radius, true);
         if (alive) setOffers(res.offers);

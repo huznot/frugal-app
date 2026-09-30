@@ -1,0 +1,138 @@
+  <div id="bg" class="clip layer" data-start="0" data-duration="18" data-track-index="0">
+    <div id="dots" data-layout-allow-overflow></div>
+    <div id="glowA" class="glow"></div>
+    <div id="glowB" class="glow"></div>
+  </div>
+
+  <!-- 1 · HOOK -->
+  <section id="s1" class="clip layer" data-start="0" data-duration="3.2" data-track-index="1">
+    <div id="s1-move" class="copy">
+      <div class="eyebrow" id="s1-eyebrow">Compare &amp; save</div>
+      <div class="hero"><span class="w" id="s1-w1">Same</span> <span class="w" id="s1-w2">groceries.</span></div>
+      <div class="hero"><span class="w" id="s1-w3">Different</span></div>
+      <div class="hero"><span class="w hl" id="s1-w4"><span class="hl-bar" id="s1-bar"></span><span class="hl-txt">price.</span></span></div>
+    </div>
+    <div class="tag float-tag" id="tagA"><span class="hole"></span><span class="tp">$6.29</span></div>
+    <div class="tag float-tag" id="tagB"><span class="hole"></span><span class="tp">$5.79</span></div>
+    <div class="tag float-tag" id="tagC"><span class="hole"></span><span class="tp">$4.49</span></div>
+  </section>
+
+  <!-- Captions beside the phone -->
+  <section id="caps" class="clip layer" data-start="2.7" data-duration="11.8" data-track-index="2">
+    <div class="copy cap" id="cap2">
+      <div class="eyebrow">Step 1</div>
+      <div class="hero"><span class="w" id="c2-w1">Scan any</span></div>
+      <div class="hero"><span class="w hl" id="c2-w2"><span class="hl-bar" id="c2-bar"></span><span class="hl-txt">barcode.</span></span></div>
+    </div>
+    <div class="copy cap" id="cap3">
+      <div class="eyebrow">Step 2</div>
+      <div class="hero"><span class="w" id="c3-w1">See every price</span></div>
+      <div class="hero"><span class="w hl" id="c3-w2"><span class="hl-bar" id="c3-bar"></span><span class="hl-txt">nearby.</span></span></div>
+    </div>
+    <div class="copy cap" id="cap4">
+      <div class="eyebrow">Step 3</div>
+      <div class="hero"><span class="w" id="c4-w1">Save on</span></div>
+      <div class="hero"><span class="w hl" id="c4-w2"><span class="hl-bar" id="c4-bar"></span><span class="hl-txt">every trip.</span></span></div>
+    </div>
+  </section>
+
+  <!-- The phone: real Frugal screens -->
+  <section id="phoneClip" class="clip layer" data-start="2.7" data-duration="11.9" data-track-index="3">
+    <div id="phoneAnchor">
+      <div id="phoneMove">
+        <div id="phone">
+          <div id="screen">
+            <div class="status"><span>9:41</span><span class="sb-r"><i></i><i></i><i></i></span></div>
+
+            <!-- SCAN -->
+            <div class="scr" id="scrScan">
+              <div class="scan-pill">Point at a barcode</div>
+              <div id="vf">
+                <img id="vf-img" src="assets/img/milk.jpg" alt="" />
+                <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+                <div id="scanline"></div>
+                <div id="vf-flash"></div>
+              </div>
+              <div id="scanCheck"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></div>
+              <div id="toast" class="card">
+                <div class="badge" style="background:#0E7A51">GG</div>
+                <div class="t-mid">
+                  <div class="t-name">Milk2Go 2% Partly Skimmed</div>
+                  <div class="t-sub">Found at 4 stores nearby</div>
+                </div>
+                <div class="ptag"><span class="hole"></span>$4.49</div>
+              </div>
+            </div>
+
+            <!-- RESULTS -->
+            <div class="scr light" id="scrRes" data-layout-allow-overflow>
+              <div class="topbar"><span class="chev">‹</span><span class="tb-title">Results</span></div>
+              <div class="prod card">
+                <div class="prod-img"><img src="assets/img/milk.jpg" alt="" /></div>
+                <div class="prod-mid">
+                  <div class="p-name">Milk2Go 2% Partly Skimmed Milk</div>
+                  <div class="p-size">473 mL</div>
+                  <div class="grade"><span>Nutri-Score</span><b>B</b></div>
+                </div>
+              </div>
+              <div class="eyebrow sm">Prices near you</div>
+              <div id="rows">
+                <div class="row" id="r0"><div class="badge" style="background:#D93025">MM</div><div class="r-mid"><div class="r-name">MapleMart</div><div class="r-sub">Store nearby · 0.8 km</div></div><div class="r-price">$6.29</div></div>
+                <div class="row" id="r1"><div class="badge" style="background:#3F7BFF">FB</div><div class="r-mid"><div class="r-name">Fresh Basket</div><div class="r-sub">In stock nearby · 1.4 km</div></div><div class="r-price">$5.79</div></div>
+                <div class="row" id="r2"><div class="badge" style="background:#0E7A51">GG</div><div class="r-mid"><div class="r-name">Green Grocer</div><div class="r-sub">In stock nearby · 1.9 km</div></div><div class="r-right"><div class="r-price" id="r2-price">$4.49</div><div class="sticker" id="bestSticker">BEST VALUE</div></div><div class="best-ring" id="bestRing"></div></div>
+                <div class="row" id="r3"><div class="badge" style="background:#FFC53D;color:#161616">VF</div><div class="r-mid"><div class="r-name">Value Foods</div><div class="r-sub">Store nearby · 2.3 km</div></div><div class="r-price">$5.49</div></div>
+              </div>
+            </div>
+
+            <!-- LIST -->
+            <div class="scr light" id="scrList" data-layout-allow-overflow>
+              <div class="l-title">My list</div>
+              <div class="l-sub">6 items · cheapest stores nearby</div>
+              <div id="items">
+                <div class="item" id="i0"><div class="box"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></div><div class="i-name">Milk 2%, 473 mL</div><div class="i-price">$4.49</div><div class="strike"></div></div>
+                <div class="item" id="i1"><div class="box"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></div><div class="i-name">Large eggs, 12</div><div class="i-price">$3.99</div><div class="strike"></div></div>
+                <div class="item" id="i2"><div class="box"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></div><div class="i-name">Whole wheat bread</div><div class="i-price">$2.79</div><div class="strike"></div></div>
+                <div class="item" id="i3"><div class="box"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></div><div class="i-name">Bananas</div><div class="i-price">$1.54</div><div class="strike"></div></div>
+                <div class="item" id="i4"><div class="box"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></div><div class="i-name">Ground coffee</div><div class="i-price">$8.99</div><div class="strike"></div></div>
+                <div class="item" id="i5"><div class="box"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></div><div class="i-name">Chicken breast</div><div class="i-price">$12.40</div><div class="strike"></div></div>
+              </div>
+              <div class="l-total"><span class="label">Estimated total</span><div class="ptag"><span class="hole"></span>$34.20</div></div>
+            </div>
+
+            <!-- Tab bar (results + list) -->
+            <div id="tabbar">
+              <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" /></svg><span>Home</span></div>
+              <div class="tab"><svg viewBox="0 0 24 24"><path d="M9 4l6 2 5-2v16l-5 2-6-2-5 2V6z" /></svg><span>Map</span></div>
+              <div class="tab scan-slot"><div id="scanBtn"><div class="sb-ledge"></div><div class="sb-face" id="scanFace"><svg viewBox="0 0 24 24"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M4 12h16" /></svg></div></div></div>
+              <div class="tab on"><svg viewBox="0 0 24 24"><path d="M5 5h14v14H5z M8.5 12l2.5 2.5 4.5-5" /></svg><span>List</span></div>
+              <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" /><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" /></svg><span>Settings</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Callouts outside the phone -->
+  <section id="calls" class="clip layer" data-start="8.6" data-duration="5.9" data-track-index="4">
+    <div id="bigTag" class="tag big" data-layout-allow-overlap><span class="hole"></span><span class="tp">$4.49</span><span class="tcap">Cheapest nearby</span></div>
+    <div id="saveCard" class="card" data-layout-allow-overlap>
+      <div class="sc-label">Saved on this trip</div>
+      <div class="sc-num" id="saveNum">$0.00</div>
+      <div class="sc-sub">vs. the priciest store nearby</div>
+    </div>
+  </section>
+
+  <!-- 5 · CTA -->
+  <section id="cta" class="clip layer" data-start="13.9" data-duration="4.1" data-track-index="5">
+    <div id="burst"></div>
+    <div id="ctaDots"></div>
+    <div id="ctaInner">
+      <div id="appIcon"><img src="assets/img/icon.png" alt="Frugal" /></div>
+      <div id="wordmark"><span class="ch">F</span><span class="ch">r</span><span class="ch">u</span><span class="ch">g</span><span class="ch">a</span><span class="ch">l</span></div>
+      <div id="tagline"><span class="tw">Scan.</span> <span class="tw">Compare.</span> <span class="tw">Save.</span></div>
+      <div id="playWrap"><img id="playBadge" src="assets/img/play-badge.png" alt="Get it on Google Play" /></div>
+    </div>
+  </section>
+
+  <audio id="bgm" src="assets/audio/music.wav" data-start="0" data-duration="18" data-track-index="10" data-volume="0.9"></audio>

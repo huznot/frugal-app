@@ -98,5 +98,6 @@ export type Offer = {
   sizeEstimated?: boolean; // size not in the listing; AI estimate of the standard pack
   unitPrice?: number; // price per 100 mL / 100 g / item
   unitLabel?: string; // "/100 mL", "/100 g", "/ea"
-  best?: boolean; // best value for what the shopper meant
+  best?: boolean; // best value (lowest price per amount) for what the shopper meant
+  cheapest?: boolean; // lowest price for what the shopper meant
 };

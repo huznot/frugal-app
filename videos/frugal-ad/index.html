@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>Frugal ad tall</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+@font-face { font-family: "Fredoka"; font-weight: 500; src: url("assets/fonts/Fredoka_500Medium.ttf") format("truetype"); }
+@font-face { font-family: "Fredoka"; font-weight: 600; src: url("assets/fonts/Fredoka_600SemiBold.ttf") format("truetype"); }
+@font-face { font-family: "Fredoka"; font-weight: 700; src: url("assets/fonts/Fredoka_700Bold.ttf") format("truetype"); }
+@font-face { font-family: "Poppins"; font-weight: 400; src: url("assets/fonts/Poppins_400Regular.ttf") format("truetype"); }
+@font-face { font-family: "Poppins"; font-weight: 500; src: url("assets/fonts/Poppins_500Medium.ttf") format("truetype"); }
+@font-face { font-family: "Poppins"; font-weight: 600; src: url("assets/fonts/Poppins_600SemiBold.ttf") format("truetype"); }
+@font-face { font-family: "MCI"; src: url("assets/fonts/MaterialCommunityIcons.ttf") format("truetype"); }
+@font-face { font-family: "Ion"; src: url("assets/fonts/Ionicons.ttf") format("truetype"); }
+
+:root {
+  --bg: #ffffff; --alt: #f6f6f6; --ink: #161616; --muted: #707070; --border: #ececec; --hair: #f1f1f1;
+  --red: #ff5050; --redLedge: #c93434; --redSoft: #ffe3e3;
+  --green: #16a870; --greenLedge: #0e7a51; --greenSoft: #ddf5ea;
+  --sun: #ffc53d; --sunLedge: #d39a14; --sky: #3f7bff;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { margin: 0; overflow: hidden; background: var(--bg); }
+#root { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: "Poppins", sans-serif; color: var(--ink); }
+.layer { position: absolute; inset: 0; }
+.mci { font-family: "MCI"; font-weight: normal; font-style: normal; line-height: 1; }
+.ion { font-family: "Ion"; font-weight: normal; font-style: normal; line-height: 1; }
+
+/* ---------- background ---------- */
+#bgColor { background: var(--bg); overflow: hidden; }
+#dots { position: absolute; top: 0; left: 0; width: 3400px; height: 3400px;
+  background-image: radial-gradient(circle, rgba(255, 80, 80, 0.22) 2.6px, transparent 2.8px); background-size: 48px 48px; }
+#flash { background: #fff; opacity: 0; pointer-events: none; }
+
+/* ---------- type ---------- */
+.copy { position: absolute; }
+.eyebrow { font-family: "Poppins"; font-weight: 600; text-transform: uppercase; letter-spacing: 0.18em; color: var(--red); font-size: 36px; margin-bottom: 12px; }
+.hero { font-family: "Fredoka"; font-weight: 700; line-height: 1.04; letter-spacing: -0.01em; color: var(--ink); white-space: nowrap; }
+.w { display: inline-block; }
+.hl { position: relative; color: #f74a4a; }
+.hl-bar { position: absolute; left: -6px; right: -10px; bottom: 10%; height: 30%; border-radius: 14px; background: var(--redSoft); transform-origin: left center; }
+.hl-txt { position: relative; }
+.cap-sub { font-family: "Poppins"; font-weight: 500; color: var(--muted); font-size: 44px; margin-top: 18px; }
+
+/* ---------- price tags ---------- */
+.tag { position: absolute; display: flex; flex-direction: column; justify-content: center; background: var(--sun); border-radius: 22px; padding: 16px 32px 16px 60px;
+  box-shadow: 0 10px 0 var(--sunLedge), 0 26px 50px rgba(0, 0, 0, 0.12); }
+.tag .hole { position: absolute; left: 22px; top: 50%; width: 20px; height: 20px; margin-top: -10px; border-radius: 50%; background: var(--bg); }
+.tag .tp { font-family: "Fredoka"; font-weight: 700; font-size: 84px; line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums; }
+.tag.big { position: relative; padding: 22px 46px 22px 84px; border-radius: 30px; box-shadow: 0 14px 0 var(--sunLedge), 0 30px 60px rgba(0, 0, 0, 0.14); }
+.tag.big .hole { left: 30px; width: 28px; height: 28px; margin-top: -14px; }
+.tag.big .tp { font-size: 150px; }
+
+/* ---------- ACT 1 ---------- */
+.item { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.it-tile { display: flex; align-items: center; justify-content: center; background: #fff; border: 3px solid var(--border); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.1); }
+.it-word { font-family: "Fredoka"; font-weight: 700; color: var(--ink); line-height: 1; }
+#stamp { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+#stamp span { display: block; font-family: "Fredoka"; font-weight: 700; color: #e03c3c; background: #fff; border: 14px solid #e03c3c; border-radius: 36px; padding: 12px 44px 20px; line-height: 1; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.18); }
+
+/* ---------- phone ---------- */
+#phoneAnchor { position: absolute; width: 390px; height: 844px; transform-origin: 0 0; }
+#phoneMove { position: relative; width: 390px; height: 844px; }
+#phone { position: relative; width: 390px; height: 844px; border-radius: 58px; background: #161616; padding: 12px; box-shadow: 0 40px 80px rgba(22, 22, 22, 0.25), 0 0 0 2px #2c2c2c inset; }
+#screen { position: relative; width: 366px; height: 820px; border-radius: 46px; overflow: hidden; background: #121212; }
+#ring { position: absolute; left: 45px; top: 202px; width: 300px; height: 300px; border-radius: 50%; border: 8px solid var(--green); opacity: 0; }
+.status { position: absolute; top: 0; left: 0; right: 0; height: 44px; z-index: 5; display: flex; justify-content: space-between; align-items: center; padding: 6px 30px 0; font-weight: 600; font-size: 14px; color: #fff; }
+.status .sb-r { display: flex; gap: 4px; }
+.status .sb-r i { display: block; width: 16px; height: 9px; border-radius: 3px; background: currentColor; }
+.scan-pill { position: absolute; top: 70px; left: 50%; width: 210px; margin-left: -105px; text-align: center; padding: 8px 0; border-radius: 999px; background: rgba(255, 255, 255, 0.14); color: #fff; font-weight: 600; font-size: 13px; }
+#vf { position: absolute; left: 33px; top: 150px; width: 300px; height: 380px; border-radius: 26px; background: #1e1e1e; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+#vf-img { height: 330px; width: auto; border-radius: 10px; }
+.corner { position: absolute; width: 38px; height: 38px; border-color: var(--sun); border-style: solid; border-width: 0; border-radius: 6px; }
+.corner.tl { top: 16px; left: 16px; border-top-width: 5px; border-left-width: 5px; }
+.corner.tr { top: 16px; right: 16px; border-top-width: 5px; border-right-width: 5px; }
+.corner.bl { bottom: 16px; left: 16px; border-bottom-width: 5px; border-left-width: 5px; }
+.corner.br { bottom: 16px; right: 16px; border-bottom-width: 5px; border-right-width: 5px; }
+#scanline { position: absolute; left: 30px; right: 30px; top: 40px; height: 3px; border-radius: 2px; background: var(--red); box-shadow: 0 0 16px 4px rgba(255, 80, 80, 0.55); }
+#vf-flash { position: absolute; inset: 0; background: #fff; opacity: 0; }
+#scanCheck { position: absolute; left: 148px; top: 305px; width: 70px; height: 70px; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 44px; box-shadow: 0 8px 24px rgba(22, 168, 112, 0.5); }
+#toast { position: absolute; left: 14px; right: 14px; top: 570px; display: flex; align-items: center; gap: 10px; padding: 12px; }
+.card { background: #fff; border: 1px solid var(--border); border-radius: 18px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06); }
+#toast .badge { width: 40px; height: 40px; border-radius: 12px; font-size: 16px; }
+.badge { flex: none; display: flex; align-items: center; justify-content: center; color: #fff; font-family: "Fredoka"; font-weight: 700; }
+.t-mid { flex: 1; min-width: 0; }
+.t-name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t-sub { font-weight: 500; font-size: 12px; color: var(--muted); }
+.ptag { position: relative; flex: none; background: var(--sun); border-radius: 10px; padding: 3px 10px 3px 18px; transform: rotate(-2deg); font-family: "Fredoka"; font-weight: 700; font-size: 17px; color: #161616; }
+.ptag .hole { position: absolute; left: 7px; top: 50%; margin-top: -3.5px; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
+
+/* ---------- ACT 3 (full-frame UI at video scale) ---------- */
+#prodChip { position: absolute; display: flex; align-items: center; gap: 26px; padding: 18px 28px; border-radius: 34px; border-width: 3px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08); }
+.pc-img { width: 96px; height: 110px; border-radius: 22px; background: var(--alt); display: flex; align-items: center; justify-content: center; overflow: hidden; flex: none; }
+.pc-img img { height: 100px; width: auto; }
+.pc-mid { flex: 1; }
+.pc-name { font-weight: 600; font-size: 40px; line-height: 1.2; }
+.pc-sub { font-weight: 500; font-size: 30px; color: var(--muted); }
+.grade b { width: 70px; height: 70px; border-radius: 50%; background: #85bb2f; color: #161616; font-family: "Fredoka"; font-weight: 700; font-size: 40px; display: flex; align-items: center; justify-content: center; }
+#rows { position: absolute; height: 780px; }
+.row { position: absolute; left: 0; right: 0; top: 0; height: 170px; display: flex; align-items: center; gap: 28px; padding: 0 36px; border-radius: 36px; border: 3px solid var(--border); background: #fff; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06); }
+.row .badge { width: 104px; height: 104px; border-radius: 30px; font-size: 40px; }
+.r-mid { flex: 1; min-width: 0; }
+.r-name { font-weight: 600; font-size: 44px; line-height: 1.2; }
+.r-sub { font-weight: 500; font-size: 32px; color: var(--muted); }
+.r-price { font-family: "Fredoka"; font-weight: 700; font-size: 72px; color: var(--ink); }
+.best-ring { position: absolute; inset: -3px; border-radius: 36px; border: 7px solid var(--green); opacity: 0; }
+.sticker { position: absolute; top: -26px; right: 34px; background: var(--greenLedge); color: #fff; border-radius: 999px; padding: 8px 24px; font-weight: 600; font-size: 28px; letter-spacing: 3px; box-shadow: 0 8px 20px rgba(14, 122, 81, 0.35); }
+.conf { position: absolute; width: 0; height: 0; }
+#confA { left: 50%; top: 85px; }
+.conf i { position: absolute; left: -9px; top: -14px; width: 18px; height: 28px; border-radius: 4px; }
+#callout { position: absolute; display: flex; align-items: center; gap: 44px; }
+#savePill { font-family: "Fredoka"; font-weight: 700; font-size: 58px; color: #fff; background: #e03c3c; border-radius: 999px; padding: 14px 40px 18px; box-shadow: 0 10px 0 var(--redLedge); }
+
+/* ---------- stripes ---------- */
+.stripe { position: absolute; top: 0; bottom: 0; left: 0; clip-path: polygon(14% 0, 100% 0, 100% 100%, 0 100%); }
+
+/* ---------- ACT 4 ---------- */
+#listCard { position: absolute; padding: 36px 44px 30px; border-radius: 44px; border-width: 3px; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.1); }
+.l-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.l-title { font-family: "Fredoka"; font-weight: 700; font-size: 80px; }
+.l-count { font-weight: 600; font-size: 40px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.item-row { position: relative; display: flex; align-items: center; gap: 26px; height: 100px; border-top: 2px solid var(--hair); }
+.box { width: 54px; height: 54px; border-radius: 16px; border: 4px solid #9a9a9a; display: flex; align-items: center; justify-content: center; flex: none; color: #fff; font-size: 38px; }
+.box .ion { display: block; }
+.i-name { flex: 1; font-weight: 600; font-size: 40px; }
+.i-price { font-weight: 600; font-size: 40px; font-variant-numeric: tabular-nums; }
+.strike { position: absolute; left: 80px; right: 170px; top: 50%; height: 4px; margin-top: -2px; border-radius: 2px; background: #8a8a8a; transform-origin: left center; }
+.l-total { display: flex; justify-content: space-between; align-items: center; padding-top: 22px; border-top: 3px solid var(--border); }
+.l-total .label { font-weight: 600; font-size: 32px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); }
+.l-total .ptag { font-size: 52px; padding: 6px 22px 8px 42px; border-radius: 18px; }
+.l-total .ptag .hole { left: 16px; width: 14px; height: 14px; margin-top: -7px; }
+#saved { position: absolute; text-align: center; }
+.sv-label { font-weight: 600; font-size: 50px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--greenLedge); }
+.sv-num { font-family: "Fredoka"; font-weight: 700; line-height: 1.05; margin: 22px 0 26px; color: var(--greenLedge); font-variant-numeric: tabular-nums; }
+.sv-sub { font-weight: 500; font-size: 44px; color: var(--muted); }
+#bigBtn { position: absolute; }
+.bb-ledge { position: absolute; left: 0; right: 0; bottom: 0; top: 20px; border-radius: 48px; background: var(--redLedge); }
+.bb-face { position: absolute; left: 0; right: 0; top: 0; bottom: 20px; border-radius: 48px; background: var(--red); display: flex; align-items: center; justify-content: center; gap: 26px; color: #fff; }
+.bb-face .ion { font-size: 86px; }
+.bb-txt { font-family: "Fredoka"; font-weight: 700; font-size: 72px; letter-spacing: 3px; text-transform: uppercase; }
+
+/* ---------- CTA ---------- */
+#burst { position: absolute; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; background: var(--red); }
+#ctaDots { position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(255, 255, 255, 0.18) 2.6px, transparent 2.8px); background-size: 48px 48px; opacity: 0; }
+#ctaInner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+#appIcon { border-radius: 27%; background: #fff; padding: 20px; box-shadow: 0 18px 0 var(--redLedge), 0 44px 90px rgba(0, 0, 0, 0.22); }
+#tileFrame { width: 100%; height: 100%; border-radius: 22%; overflow: hidden; }
+#tileFrame img { display: block; width: 100%; height: 100%; }
+#wordmark { font-family: "Fredoka"; font-weight: 700; color: #fff; line-height: 1; display: flex; }
+#wordmark .ch { display: inline-block; }
+#tagline { font-family: "Fredoka"; font-weight: 600; color: #fff; white-space: nowrap; }
+#tagline .tw { display: inline-block; }
+#playWrap { position: relative; overflow: hidden; border-radius: 22px; }
+#playBadge { display: block; width: 100%; height: auto; }
+#sheen { position: absolute; top: -20%; bottom: -20%; left: 0; width: 30%; background: linear-gradient(100deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0)); }
+
+/* ================= TALL 1080x1920 ================= */
+[data-layout="tall"] .it-tile { width: 420px; height: 420px; border-radius: 110px; font-size: 290px; }
+[data-layout="tall"] .it-word { font-size: 210px; margin-top: 40px; }
+[data-layout="tall"] .it-tag { left: 610px; top: 540px; }
+[data-layout="tall"] #stamp span { font-size: 150px; }
+[data-layout="tall"] #a1-lines { left: 90px; top: 520px; width: 900px; }
+[data-layout="tall"] #a1-lines .hero { font-size: 196px; }
+[data-layout="tall"] #a1-lines .w { display: table; }
+[data-layout="tall"] .cap { left: 90px; top: 140px; width: 900px; }
+[data-layout="tall"] .cap .hero { font-size: 140px; }
+[data-layout="tall"] #cap2 .hero { font-size: 180px; }
+[data-layout="tall"] #phoneAnchor { left: 228px; top: 592px; transform: scale(1.55); }
+[data-layout="tall"] #prodChip { left: 90px; top: 520px; width: 900px; }
+[data-layout="tall"] #rows { left: 90px; top: 720px; width: 900px; }
+[data-layout="tall"] #callout { left: 0; right: 0; top: 1540px; justify-content: center; }
+[data-layout="tall"] .stripe { width: 1400px; }
+[data-layout="tall"] #listCard { left: 90px; top: 110px; width: 900px; }
+[data-layout="tall"] #saved { left: 0; right: 0; top: 1080px; }
+[data-layout="tall"] .sv-num { font-size: 290px; }
+[data-layout="tall"] #confB { left: 540px; top: 1300px; }
+[data-layout="tall"] #bigBtn { left: 170px; top: 1560px; width: 740px; height: 200px; }
+[data-layout="tall"] #appIcon { width: 380px; height: 380px; margin-bottom: 80px; }
+[data-layout="tall"] #wordmark { font-size: 250px; }
+[data-layout="tall"] #tagline { font-size: 78px; margin: 22px 0 90px; }
+[data-layout="tall"] #playWrap { width: 620px; }
+
+/* ================= WIDE 1920x1080 ================= */
+[data-layout="wide"] .it-tile { width: 330px; height: 330px; border-radius: 88px; font-size: 230px; }
+[data-layout="wide"] .it-word { font-size: 170px; margin-top: 24px; }
+[data-layout="wide"] .it-tag { left: 1060px; top: 220px; }
+[data-layout="wide"] #stamp span { font-size: 150px; }
+[data-layout="wide"] #a1-lines { left: 150px; top: 290px; width: 1600px; }
+[data-layout="wide"] #a1-lines .hero { font-size: 180px; }
+[data-layout="wide"] .cap { left: 150px; top: 250px; width: 1000px; }
+[data-layout="wide"] .cap .hero { font-size: 136px; }
+[data-layout="wide"] #cap2 .hero { font-size: 190px; }
+[data-layout="wide"] #cap3 { top: 140px; }
+[data-layout="wide"] #phoneAnchor { left: 1230px; top: 42px; transform: scale(1.18); }
+[data-layout="wide"] #prodChip { left: 150px; top: 520px; width: 760px; }
+[data-layout="wide"] #rows { left: 1010px; top: 150px; width: 790px; }
+[data-layout="wide"] #callout { left: 150px; top: 740px; }
+[data-layout="wide"] #callout .tag.big .tp { font-size: 120px; }
+[data-layout="wide"] #savePill { font-size: 48px; }
+[data-layout="wide"] .stripe { width: 2500px; }
+[data-layout="wide"] #listCard { left: 120px; top: 70px; width: 780px; }
+[data-layout="wide"] #listCard .item-row { height: 92px; }
+[data-layout="wide"] #saved { left: 960px; right: 0; top: 110px; }
+[data-layout="wide"] .sv-num { font-size: 250px; }
+[data-layout="wide"] #confB { left: 1440px; top: 330px; }
+[data-layout="wide"] #bigBtn { left: 1110px; top: 700px; width: 660px; height: 190px; }
+[data-layout="wide"] #appIcon { width: 250px; height: 250px; padding: 14px; margin-bottom: 50px; }
+[data-layout="wide"] #wordmark { font-size: 190px; }
+[data-layout="wide"] #tagline { font-size: 58px; margin: 10px 0 56px; }
+[data-layout="wide"] #playWrap { width: 440px; }
+
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-layout="tall" data-start="0" data-duration="18" data-width="1080" data-height="1920">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <filter id="mbA" x="-50%" y="-20%" width="200%" height="140%"><feGaussianBlur id="mbA-n" in="SourceGraphic" stdDeviation="0 0" /></filter>
+      <filter id="mbB" x="-50%" y="-20%" width="200%" height="140%"><feGaussianBlur id="mbB-n" in="SourceGraphic" stdDeviation="0 0" /></filter>
+    </defs>
+  </svg>
+
+  <div id="bgColor" class="clip layer" data-start="0" data-duration="14.6" data-track-index="0">
+    <div id="dots" data-layout-allow-overflow></div>
+  </div>
+
+  <div id="world" class="layer">
+    <!-- ACT 1 · HOOK -->
+    <section id="a1" class="clip layer" data-start="0" data-duration="2.95" data-track-index="1">
+      <div id="a1-items" class="layer">
+        <div class="item" id="it1">
+          <div class="it-tile" style="color:#3F7BFF"><span class="mci">&#xf01aa;</span></div>
+          <div class="it-word">Milk</div>
+          <div class="tag it-tag"><span class="hole"></span><span class="tp">$6.29</span></div>
+        </div>
+        <div class="item" id="it2">
+          <div class="it-tile" style="color:#D39A14"><span class="mci">&#xf0aaf;</span></div>
+          <div class="it-word">Eggs</div>
+          <div class="tag it-tag"><span class="hole"></span><span class="tp">$5.49</span></div>
+        </div>
+        <div class="item" id="it3">
+          <div class="it-tile" style="color:#FF5050"><span class="mci">&#xf0cee;</span></div>
+          <div class="it-word">Bread</div>
+          <div class="tag it-tag"><span class="hole"></span><span class="tp">$4.99</span></div>
+        </div>
+        <div id="stamp"><span>Overpaying?</span></div>
+      </div>
+      <div id="a1-lines" class="copy">
+        <div class="hero"><span class="w" id="a1-w1">Same</span> <span class="w" id="a1-w2">groceries.</span></div>
+        <div class="hero"><span class="w" id="a1-w3">Better</span> <span class="w hl" id="a1-w4"><span class="hl-bar" id="a1-bar"></span><span class="hl-txt">price.</span></span></div>
+      </div>
+    </section>
+
+    <!-- ACT 2 · SCAN -->
+    <section id="a2" class="clip layer" data-start="2.62" data-duration="2.93" data-track-index="2">
+      <div id="a2-move" class="layer">
+        <div class="copy cap" id="cap2">
+          <div class="eyebrow">Step 1</div>
+          <div class="hero"><span class="w" id="c2-w1">Scan</span> <span class="w hl" id="c2-w2"><span class="hl-bar" id="c2-bar"></span><span class="hl-txt">it.</span></span></div>
+          <div class="cap-sub" id="c2-sub">Any barcode. Any store.</div>
+        </div>
+        <div id="phoneAnchor">
+          <div id="phoneMove">
+            <div id="ring"></div>
+            <div id="phone">
+              <div id="screen">
+                <div class="status"><span>9:41</span><span class="sb-r"><i></i><i></i><i></i></span></div>
+                <div class="scan-pill">Point at a barcode</div>
+                <div id="vf">
+                  <img id="vf-img" src="assets/img/milk.jpg" alt="" />
+                  <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+                  <div id="scanline"></div>
+                  <div id="vf-flash"></div>
+                </div>
+                <div id="scanCheck"><span class="ion">&#xf21d;</span></div>
+                <div id="toast" class="card">
+                  <div class="badge" style="background:#0E7A51">GG</div>
+                  <div class="t-mid">
+                    <div class="t-name">Milk2Go 2% Partly Skimmed</div>
+                    <div class="t-sub">Found at 4 stores nearby</div>
+                  </div>
+                  <div class="ptag"><span class="hole"></span>$4.49</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ACT 3 · COMPARE -->
+    <section id="a3" class="clip layer" data-start="5.55" data-duration="4.58" data-track-index="3">
+      <div id="a3-move" class="layer">
+        <div class="copy cap" id="cap3">
+          <div class="eyebrow">Step 2</div>
+          <div class="hero"><span class="w" id="c3-w1">Every price</span></div>
+          <div class="hero"><span class="w hl" id="c3-w2"><span class="hl-bar" id="c3-bar"></span><span class="hl-txt">near you.</span></span></div>
+        </div>
+        <div id="prodChip" class="card">
+          <div class="pc-img"><img src="assets/img/milk.jpg" alt="" /></div>
+          <div class="pc-mid"><div class="pc-name">Milk2Go 2% Milk</div><div class="pc-sub">473 mL · 4 stores</div></div>
+          <div class="grade"><b>B</b></div>
+        </div>
+        <div id="rows">
+          <div class="row" id="r0"><div class="badge" style="background:#D93025">MM</div><div class="r-mid"><div class="r-name">MapleMart</div><div class="r-sub">0.8 km away</div></div><div class="r-price">$6.29</div></div>
+          <div class="row" id="r1"><div class="badge" style="background:#3F7BFF">FB</div><div class="r-mid"><div class="r-name">Fresh Basket</div><div class="r-sub">1.4 km away</div></div><div class="r-price">$5.79</div></div>
+          <div class="row" id="r2"><div class="badge" style="background:#0E7A51">GG</div><div class="r-mid"><div class="r-name">Green Grocer</div><div class="r-sub">1.9 km away</div></div><div class="r-price" id="r2-price">$4.49</div><div class="best-ring" id="bestRing"></div><div class="sticker" id="bestSticker">BEST VALUE</div></div>
+          <div class="row" id="r3"><div class="badge" style="background:#FFC53D;color:#161616">VF</div><div class="r-mid"><div class="r-name">Value Foods</div><div class="r-sub">2.3 km away</div></div><div class="r-price">$5.49</div></div>
+          <div id="confA" class="conf"></div>
+        </div>
+        <div id="callout">
+          <div class="tag big" id="bigTag"><span class="hole"></span><span class="tp" id="bigTagNum">$6.29</span></div>
+          <div id="savePill">You save $1.80</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- stripe wipe -->
+    <section id="stripes" class="clip layer" data-start="9.6" data-duration="1.0" data-track-index="4">
+      <div class="stripe" id="st1" style="background:#FF5050"></div>
+      <div class="stripe" id="st2" style="background:#FFC53D"></div>
+      <div class="stripe" id="st3" style="background:#16A870"></div>
+    </section>
+
+    <!-- ACT 4 · SAVE -->
+    <section id="a4" class="clip layer" data-start="10.13" data-duration="4.47" data-track-index="5">
+      <div id="listCard" class="card">
+        <div class="l-head"><div class="l-title">My list</div><div class="l-count" id="lCount">0 / 6</div></div>
+        <div class="item-row" id="i0"><div class="box"><span class="ion">&#xf21d;</span></div><div class="i-name" data-layout-allow-occlusion>Milk 2%</div><div class="i-price">$4.49</div><div class="strike" data-layout-allow-occlusion></div></div>
+        <div class="item-row" id="i1"><div class="box"><span class="ion">&#xf21d;</span></div><div class="i-name" data-layout-allow-occlusion>Large eggs, 12</div><div class="i-price">$3.99</div><div class="strike" data-layout-allow-occlusion></div></div>
+        <div class="item-row" id="i2"><div class="box"><span class="ion">&#xf21d;</span></div><div class="i-name" data-layout-allow-occlusion>Whole wheat bread</div><div class="i-price">$2.79</div><div class="strike" data-layout-allow-occlusion></div></div>
+        <div class="item-row" id="i3"><div class="box"><span class="ion">&#xf21d;</span></div><div class="i-name" data-layout-allow-occlusion>Bananas</div><div class="i-price">$1.54</div><div class="strike" data-layout-allow-occlusion></div></div>
+        <div class="item-row" id="i4"><div class="box"><span class="ion">&#xf21d;</span></div><div class="i-name" data-layout-allow-occlusion>Ground coffee</div><div class="i-price">$8.99</div><div class="strike" data-layout-allow-occlusion></div></div>
+        <div class="item-row" id="i5"><div class="box"><span class="ion">&#xf21d;</span></div><div class="i-name" data-layout-allow-occlusion>Chicken breast</div><div class="i-price">$12.40</div><div class="strike" data-layout-allow-occlusion></div></div>
+        <div class="l-total"><span class="label">Total</span><div class="ptag"><span class="hole"></span>$34.20</div></div>
+      </div>
+      <div id="saved">
+        <div class="sv-label" id="svLabel">You saved</div>
+        <div class="sv-num" id="saveNum" data-layout-allow-overlap>$0.00</div>
+        <div class="sv-sub" id="svSub">on one grocery run</div>
+      </div>
+      <div id="confB" class="conf"></div>
+      <div id="bigBtn">
+        <div class="bb-ledge"></div>
+        <div class="bb-face" id="bbFace"><span class="ion">&#xf556;</span><span class="bb-txt">Scan &amp; save</span></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ACT 5 · CTA -->
+  <section id="cta" class="clip layer" data-start="14.0" data-duration="4.0" data-track-index="6">
+    <div id="burst"></div>
+    <div id="ctaDots"></div>
+    <div id="ctaInner">
+      <div id="appIcon"><div id="tileFrame"><img src="assets/img/app-tile.png" alt="Frugal" /></div></div>
+      <div id="wordmark"><span class="ch">F</span><span class="ch">r</span><span class="ch">u</span><span class="ch">g</span><span class="ch">a</span><span class="ch">l</span></div>
+      <div id="tagline"><span class="tw">Scan.</span> <span class="tw">Compare.</span> <span class="tw">Save.</span></div>
+      <div id="playWrap"><img id="playBadge" src="assets/img/play-badge.png" alt="Get it on Google Play" /><div id="sheen"></div></div>
+    </div>
+  </section>
+
+  <div id="flash" class="clip layer" data-start="0" data-duration="18" data-track-index="7"></div>
+
+  <audio id="bgm" src="assets/audio/music.wav" data-start="0" data-duration="18" data-track-index="10" data-volume="0.85"></audio>
+  <audio id="sfx-pop1" src="assets/sfx/pop.mp3" data-start="0.02" data-duration="0.7" data-track-index="11" data-volume="0.55"></audio>
+  <audio id="sfx-pop2" src="assets/sfx/pop.mp3" data-start="0.49" data-duration="0.7" data-track-index="12" data-volume="0.55"></audio>
+  <audio id="sfx-pop3" src="assets/sfx/pop.mp3" data-start="0.96" data-duration="0.7" data-track-index="11" data-volume="0.55"></audio>
+  <audio id="sfx-impact1" src="assets/sfx/impact.mp3" data-start="1.43" data-duration="1.4" data-track-index="12" data-volume="0.7"></audio>
+  <audio id="sfx-whoosh1" src="assets/sfx/whoosh.mp3" data-start="2.62" data-duration="0.6" data-track-index="13" data-volume="0.7"></audio>
+  <audio id="sfx-beep" src="assets/sfx/beep.mp3" data-start="4.24" data-duration="0.1" data-track-index="11" data-volume="0.8"></audio>
+  <audio id="sfx-whoosh2" src="assets/sfx/whoosh.mp3" data-start="5.1" data-duration="0.6" data-track-index="12" data-volume="0.7"></audio>
+  <audio id="sfx-pop4" src="assets/sfx/pop.mp3" data-start="5.88" data-duration="0.7" data-track-index="11" data-volume="0.4"></audio>
+  <audio id="sfx-pop5" src="assets/sfx/pop.mp3" data-start="6.35" data-duration="0.7" data-track-index="13" data-volume="0.4"></audio>
+  <audio id="sfx-whoosh3" src="assets/sfx/whoosh.mp3" data-start="7.02" data-duration="0.6" data-track-index="11" data-volume="0.6"></audio>
+  <audio id="sfx-impact2" src="assets/sfx/impact.mp3" data-start="7.99" data-duration="1.4" data-track-index="12" data-volume="0.65"></audio>
+  <audio id="sfx-sparkle1" src="assets/sfx/sparkle.mp3" data-start="8.0" data-duration="1.8" data-track-index="13" data-volume="0.45"></audio>
+  <audio id="sfx-whoosh4" src="assets/sfx/whoosh.mp3" data-start="9.65" data-duration="0.6" data-track-index="11" data-volume="0.7"></audio>
+  <audio id="sfx-chaching" src="assets/sfx/chaching.mp3" data-start="12.6" data-duration="1.2" data-track-index="12" data-volume="0.7"></audio>
+  <audio id="sfx-click" src="assets/sfx/click.mp3" data-start="14.05" data-duration="0.4" data-track-index="13" data-volume="0.9"></audio>
+  <audio id="sfx-whoosh5" src="assets/sfx/whoosh.mp3" data-start="14.1" data-duration="0.6" data-track-index="11" data-volume="0.6"></audio>
+  <audio id="sfx-impact3" src="assets/sfx/impact.mp3" data-start="14.55" data-duration="1.4" data-track-index="12" data-volume="0.6"></audio>
+  <audio id="sfx-sparkle2" src="assets/sfx/sparkle.mp3" data-start="16.3" data-duration="1.7" data-track-index="13" data-volume="0.4"></audio>
+
+    </div>
+    <script>
+(function () {
+  const root = document.getElementById("root");
+  const wide = root.dataset.layout === "wide";
+  const W = wide ? 1920 : 1080;
+  const H = wide ? 1080 : 1920;
+  // Music is 128 BPM; B(n) is beat n of the detected grid (beats/assets/audio/music.wav.json).
+  const B = (n) => 0.022 + n * 0.46875;
+  // Stage-px anchors that depend on layout.
+  const L = wide
+    ? { zoomO: "1460px 540px", burst: { x: 1440, y: 795, s: 28 } }
+    : { zoomO: "530px 1246px", burst: { x: 540, y: 1660, s: 30 } };
+
+  const tl = gsap.timeline({ paused: true });
+  const $ = (s) => document.querySelector(s);
+  const all = (s) => gsap.utils.toArray(s);
+  const hash = (i) => { const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
+
+  // ---------- helpers ----------
+  const rise = (sel, at, dist = 150) => {
+    tl.set(sel, { opacity: 1 }, at);
+    tl.fromTo(sel, { y: dist, rotation: 4 }, { y: 0, rotation: 0, duration: 0.5, ease: "power4.out", immediateRender: false }, at);
+  };
+  const bar = (sel, at) => tl.to(sel, { scaleX: 1, duration: 0.35, ease: "power3.out" }, at);
+  const flash = (at, peak) => tl.fromTo("#flash", { opacity: peak }, { opacity: 0, duration: 0.32, ease: "power2.out", immediateRender: false }, at);
+  const shake = (at, amp) => {
+    [[amp, -amp * 0.6], [-amp * 0.8, amp * 0.5], [amp * 0.5, -amp * 0.35], [-amp * 0.25, amp * 0.15], [0, 0]].forEach(([x, y], i) =>
+      tl.to("#world", { x, y, duration: 0.045, ease: "none" }, at + i * 0.045));
+  };
+  // Directional (horizontal) motion blur driven through an SVG filter proxy.
+  const mblur = (nodeId, at, peak, dur, up) => {
+    const node = document.getElementById(nodeId);
+    const p = { v: up ? 0 : peak };
+    const write = () => node.setAttribute("stdDeviation", p.v.toFixed(2) + " 0");
+    tl.fromTo(p, { v: up ? 0 : peak }, { v: up ? peak : 0, duration: dur, ease: up ? "power2.in" : "power2.out", onUpdate: write, immediateRender: false }, at);
+  };
+  // Deterministic confetti: every particle is a pure ballistic function of time.
+  const confetti = (sel, at, n, colors, speed, dur) => {
+    const box = $(sel);
+    const parts = [];
+    for (let i = 0; i < n; i++) {
+      const el = document.createElement("i");
+      el.style.background = colors[i % colors.length];
+      el.style.opacity = "0";
+      box.appendChild(el);
+      const a = -Math.PI / 2 + (hash(i) - 0.5) * 2.4;
+      const s = speed * (0.55 + hash(i + 40) * 0.6);
+      parts.push({ el, vx: Math.cos(a) * s, vy: Math.sin(a) * s, r0: hash(i + 80) * 360, vr: (hash(i + 120) - 0.5) * 1400, sc: 0.7 + hash(i + 160) * 0.7 });
+    }
+    const p = { t: 0 };
+    const g = 2600;
+    const write = () => {
+      const t = p.t;
+      const op = t <= 0 ? 0 : Math.max(0, Math.min(1, 1 - (t - dur * 0.65) / (dur * 0.35)));
+      parts.forEach((q) => {
+        q.el.style.transform = `translate(${(q.vx * t).toFixed(1)}px, ${(q.vy * t + 0.5 * g * t * t).toFixed(1)}px) rotate(${(q.r0 + q.vr * t).toFixed(1)}deg) scale(${q.sc})`;
+        q.el.style.opacity = op.toFixed(3);
+      });
+    };
+    tl.fromTo(p, { t: 0 }, { t: dur, duration: dur, ease: "none", onUpdate: write, immediateRender: false }, at);
+  };
+  const counter = (sel, at, from, to, dur, ease) => {
+    const el = $(sel);
+    const p = { v: from };
+    tl.fromTo(p, { v: from }, { v: to, duration: dur, ease, onUpdate: () => { el.textContent = "$" + p.v.toFixed(2); }, immediateRender: false }, at);
+  };
+
+  // ---------- initial states ----------
+  gsap.set(["#it1", "#it2", "#it3", "#stamp"], { opacity: 0 });
+  gsap.set(["#a1-w1", "#a1-w2", "#a1-w3", "#a1-w4", "#c2-w1", "#c2-w2", "#c2-sub", "#c3-w1", "#c3-w2"], { opacity: 0 });
+  gsap.set(".hl-bar", { scaleX: 0 });
+  gsap.set("#a1-lines", { filter: "url(#mbA)" });
+  gsap.set("#a2", { filter: "url(#mbB)" });
+  gsap.set("#a2-move", { x: W });
+  gsap.set("#phoneMove", { transformPerspective: 1600 });
+  gsap.set("#scanCheck", { scale: 0 });
+  gsap.set("#toast", { y: 260, opacity: 0 });
+  gsap.set("#prodChip", { opacity: 0 });
+  const ROW = 192;
+  const slot0 = { r0: 0, r1: 1, r2: 2, r3: 3 };
+  const slot1 = { r0: 3, r1: 2, r2: 0, r3: 1 };
+  Object.keys(slot0).forEach((id) => gsap.set("#" + id, { y: slot0[id] * ROW, opacity: 0 }));
+  gsap.set("#bestSticker", { opacity: 0 });
+  gsap.set(["#bigTag", "#savePill"], { opacity: 0 });
+  gsap.set(".stripe", { x: W });
+  gsap.set(".box .ion", { scale: 0 });
+  gsap.set(".strike", { scaleX: 0 });
+  gsap.set(["#svLabel", "#saveNum", "#svSub"], { opacity: 0 });
+  gsap.set("#bigBtn", { y: 500, opacity: 0 });
+  gsap.set("#burst", { left: L.burst.x, top: L.burst.y, scale: 0 });
+  gsap.set(["#appIcon", "#playWrap"], { opacity: 0 });
+  gsap.set(["#wordmark .ch", "#tagline .tw"], { opacity: 0 });
+  gsap.set("#sheen", { xPercent: -150 });
+
+  // background current: one slow leftward drift for the whole film
+  tl.fromTo("#dots", { x: 0, y: 0 }, { x: -576, y: -192, duration: 14.6, ease: "none" }, 0);
+
+  // =========== ACT 1 · HOOK: one grocery item per beat ===========
+  const items = ["#it1", "#it2", "#it3"];
+  const tints = ["#FFFFFF", "#FFF4D6", "#FFE3E3"];
+  items.forEach((sel, i) => {
+    const at = B(i);
+    tl.set("#bgColor", { backgroundColor: tints[i] }, at);
+    tl.set(sel, { opacity: 1 }, at);
+    const tile = sel + " .it-tile", word = sel + " .it-word", tag = sel + " .it-tag";
+    if (i === 0) tl.fromTo(tile, { scale: 1.9, rotation: -14 }, { scale: 1, rotation: 0, duration: 0.38, ease: "power4.out", immediateRender: false }, at);
+    if (i === 1) tl.fromTo(sel, { x: W * 0.9 }, { x: 0, duration: 0.36, ease: "power4.out", immediateRender: false }, at);
+    if (i === 2) tl.fromTo(sel, { y: H * 0.6, rotation: 14 }, { y: 0, rotation: 0, duration: 0.38, ease: "power4.out", immediateRender: false }, at);
+    tl.fromTo(word, { y: 120, scale: 0.8 }, { y: 0, scale: 1, duration: 0.32, ease: "back.out(2)", immediateRender: false }, at + 0.04);
+    tl.fromTo(tag, { x: 260, y: -120, rotation: 50, scale: 0.4 }, { x: 0, y: 0, rotation: -8, scale: 1, duration: 0.4, ease: "back.out(1.8)", immediateRender: false }, at + 0.08);
+    if (i < 2) tl.to(sel, { x: -W * 0.9, duration: 0.13, ease: "power4.in" }, B(i + 1) - 0.13);
+  });
+  // beat 3: the verdict stamp slams down
+  tl.set("#bgColor", { backgroundColor: "#FFFFFF" }, B(3));
+  tl.to("#it3", { scale: 0.9, opacity: 0.35, duration: 0.2, ease: "power2.out" }, B(3));
+  tl.set("#stamp", { opacity: 1 }, B(3));
+  tl.fromTo("#stamp span", { scale: 3.2, rotation: -24, filter: "blur(10px)" }, { scale: 1, rotation: -8, filter: "blur(0px)", duration: 0.24, ease: "power4.out", immediateRender: false }, B(3));
+  flash(B(3), 0.55);
+  shake(B(3) + 0.1, 22);
+  // beat 4: pull back, then the promise
+  tl.to(["#it3", "#stamp"], { scale: 0.7, opacity: 0, duration: 0.16, ease: "power3.in" }, B(4) - 0.1);
+  rise("#a1-w1", B(4));
+  rise("#a1-w2", B(4) + 0.09);
+  rise("#a1-w3", B(5));
+  rise("#a1-w4", B(5) + 0.09);
+  bar("#a1-bar", B(5) + 0.2);
+  // whip-pan out (left) with directional blur
+  tl.to("#a1-lines", { x: -W * 1.2, duration: 0.3, ease: "power3.in" }, 2.64);
+  mblur("mbA-n", 2.64, 40, 0.3, true);
+
+  // =========== ACT 2 · SCAN ===========
+  tl.to("#a2-move", { x: 0, duration: 0.5, ease: "power3.out" }, 2.72);
+  mblur("mbB-n", 2.72, 40, 0.45, false);
+  tl.fromTo("#phoneMove", { rotationY: -38, rotation: 8 }, { rotationY: 0, rotation: 0, duration: 0.8, ease: "power3.out", immediateRender: false }, 2.72);
+  rise("#c2-w1", B(6), 120);
+  rise("#c2-w2", B(6) + 0.09, 120);
+  bar("#c2-bar", B(6) + 0.3);
+  rise("#c2-sub", B(7), 60);
+  tl.fromTo("#scanline", { y: 0 }, { y: 296, duration: 0.47, ease: "sine.inOut" }, B(7));
+  tl.to("#scanline", { y: 150, duration: 0.47, ease: "sine.inOut" }, B(8));
+  // beat 9: BEEP, lock on
+  const t9 = B(9);
+  tl.to("#scanline", { opacity: 0, duration: 0.08 }, t9);
+  tl.fromTo("#vf-flash", { opacity: 0.85 }, { opacity: 0, duration: 0.35, ease: "power2.out", immediateRender: false }, t9);
+  [[".corner.tl", 14, 14], [".corner.tr", -14, 14], [".corner.bl", 14, -14], [".corner.br", -14, -14]].forEach(([s, x, y]) =>
+    tl.to(s, { x, y, borderColor: "#16A870", duration: 0.16, ease: "power3.out" }, t9));
+  tl.to("#scanCheck", { scale: 1, duration: 0.4, ease: "back.out(2.4)" }, t9 + 0.03);
+  tl.fromTo("#ring", { scale: 1, opacity: 1 }, { scale: 3.4, opacity: 0, duration: 0.7, ease: "power2.out", immediateRender: false }, t9);
+  tl.to("#phoneMove", { scale: 1.06, duration: 0.07, ease: "power2.out" }, t9);
+  tl.to("#phoneMove", { scale: 1, duration: 0.4, ease: "back.out(2)" }, t9 + 0.07);
+  flash(t9, 0.35);
+  tl.set("#toast", { opacity: 1 }, B(10));
+  tl.to("#toast", { y: 0, duration: 0.45, ease: "power4.out" }, B(10));
+  // beat 11: zoom THROUGH the screen (camera pushes forward)
+  tl.set("#a2-move", { transformOrigin: L.zoomO }, B(11) - 0.01);
+  tl.to("#a2-move", { scale: 6, duration: 0.38, ease: "power4.in" }, B(11));
+  tl.fromTo("#a2-move", { filter: "blur(0px)" }, { filter: "blur(14px)", duration: 0.38, ease: "power4.in", immediateRender: false }, B(11));
+  flash(5.54, 0.9);
+
+  // =========== ACT 3 · COMPARE (arrives still pushing forward: grows into place) ===========
+  tl.fromTo("#a3-move", { scale: 0.72, filter: "blur(12px)" }, { scale: 1, filter: "blur(0px)", duration: 0.5, ease: "power4.out", immediateRender: false }, 5.55);
+  rise("#c3-w1", 5.62, 120);
+  rise("#c3-w2", 5.72, 120);
+  bar("#c3-bar", 6.0);
+  tl.set("#prodChip", { opacity: 1 }, B(12) + 0.2);
+  tl.fromTo("#prodChip", { scale: 0.6, y: 40 }, { scale: 1, y: 0, duration: 0.4, ease: "back.out(1.8)", immediateRender: false }, B(12) + 0.2);
+  ["r0", "r1", "r2", "r3"].forEach((id, i) => {
+    const at = B(13) + i * 0.2344;
+    const fromX = i % 2 ? W : -W;
+    tl.set("#" + id, { opacity: 1 }, at);
+    tl.fromTo("#" + id, { x: fromX, rotation: i % 2 ? 6 : -6 }, { x: 0, rotation: 0, duration: 0.38, ease: "power4.out", immediateRender: false }, at);
+  });
+  // beat 15: sort by price; the cheapest lifts and flies to the top
+  const t15 = B(15);
+  tl.set("#r2", { zIndex: 3 }, t15);
+  tl.to("#r2", { scale: 1.06, boxShadow: "0 30px 60px rgba(0,0,0,0.18)", duration: 0.14, ease: "power2.out" }, t15);
+  tl.to("#r2", { y: slot1.r2 * ROW, duration: 0.42, ease: "power3.inOut" }, t15 + 0.06);
+  ["r0", "r1", "r3"].forEach((id, i) => tl.to("#" + id, { y: slot1[id] * ROW, duration: 0.4, ease: "power3.inOut" }, t15 + 0.1 + i * 0.03));
+  // anticipation squash, then BEST VALUE on the downbeat
+  tl.to("#r2", { scale: 0.97, duration: 0.2, ease: "power2.in" }, B(17) - 0.2);
+  const t17 = B(17);
+  tl.to("#r2", { scale: 1, boxShadow: "0 12px 30px rgba(0,0,0,0.06)", duration: 0.45, ease: "back.out(3)" }, t17);
+  tl.to("#bestRing", { opacity: 1, duration: 0.1 }, t17);
+  tl.to("#r2-price", { color: "#0E7A51", duration: 0.1 }, t17);
+  tl.set("#bestSticker", { opacity: 1 }, t17);
+  tl.fromTo("#bestSticker", { scale: 3.4, rotation: -22 }, { scale: 1, rotation: -4, duration: 0.24, ease: "power4.out", immediateRender: false }, t17);
+  confetti("#confA", t17, 40, ["#16A870", "#FFC53D", "#FF5050", "#3F7BFF"], 1300, 1.3);
+  flash(t17, 0.45);
+  shake(t17 + 0.05, 16);
+  // beat 18: the price tag lands and rolls down to the best price
+  tl.set("#bigTag", { opacity: 1 }, B(18));
+  tl.fromTo("#bigTag", { scale: 2.3, rotation: -28 }, { scale: 1, rotation: -5, duration: 0.4, ease: "power4.out", immediateRender: false }, B(18));
+  counter("#bigTagNum", B(18) + 0.1, 6.29, 4.49, 0.7, "power2.inOut");
+  tl.set("#savePill", { opacity: 1 }, B(19) + 0.1);
+  tl.fromTo("#savePill", { scale: 0, rotation: -20 }, { scale: 1, rotation: 5, duration: 0.42, ease: "back.out(2.6)", immediateRender: false }, B(19) + 0.1);
+  tl.to("#a3-move", { scale: 1.035, duration: 1.5, ease: "none" }, 8.1);
+
+  // =========== stripe wipe (left), swap under cover at 10.13 ===========
+  all(".stripe").forEach((s, i) => tl.to(s, { x: -W * 1.5, duration: 0.75, ease: "power3.inOut" }, 9.62 + i * 0.07));
+
+  // =========== ACT 4 · SAVE ===========
+  tl.fromTo("#listCard", { x: 160 }, { x: 0, duration: 0.5, ease: "power3.out" }, 10.13);
+  const cnt = { v: 0 };
+  const cntEl = $("#lCount");
+  all(".item-row").forEach((it, i) => {
+    const at = B(22) + i * 0.2344;
+    tl.to(it.querySelector(".box"), { backgroundColor: "#16A870", borderColor: "#16A870", duration: 0.1 }, at);
+    tl.to(it.querySelector(".box .ion"), { scale: 1, duration: 0.3, ease: "back.out(2.6)" }, at);
+    tl.to(it.querySelector(".strike"), { scaleX: 1, duration: 0.22, ease: "power2.out" }, at + 0.04);
+    tl.to(it.querySelector(".i-name"), { color: "#8a8a8a", duration: 0.18 }, at + 0.04);
+    tl.to(cnt, { v: i + 1, duration: 0.01, onUpdate: () => { cntEl.textContent = Math.round(cnt.v) + " / 6"; } }, at);
+  });
+  rise("#svLabel", B(25), 80);
+  tl.set("#saveNum", { opacity: 1 }, B(25) + 0.06);
+  tl.fromTo("#saveNum", { scale: 2.2 }, { scale: 1, duration: 0.35, ease: "power4.out", immediateRender: false }, B(25) + 0.06);
+  counter("#saveNum", B(25) + 0.1, 0, 12.6, 0.78, "power2.out");
+  const tPay = 12.62;
+  tl.to("#saveNum", { scale: 1.14, duration: 0.07, ease: "power2.out" }, tPay);
+  tl.to("#saveNum", { scale: 1, duration: 0.45, ease: "back.out(2.4)" }, tPay + 0.07);
+  confetti("#confB", tPay, 44, ["#16A870", "#0E7A51", "#FFC53D", "#DDF5EA"], 1500, 1.4);
+  flash(tPay, 0.4);
+  shake(tPay + 0.03, 18);
+  rise("#svSub", B(26) + 0.1, 60);
+  // the big scan button rises, gets pressed, and floods the frame red
+  tl.set("#bigBtn", { opacity: 1 }, B(28));
+  tl.to("#bigBtn", { y: 0, duration: 0.45, ease: "back.out(1.6)" }, B(28));
+  tl.to("#bigBtn", { scale: 1.05, duration: 0.3, ease: "power2.inOut" }, B(29) - 0.05);
+  tl.to("#bbFace", { y: 20, duration: 0.06, ease: "power2.in" }, 14.03);
+  tl.to("#bigBtn", { scale: 1, duration: 0.06, ease: "power2.in" }, 14.03);
+  tl.to("#bbFace", { y: 0, duration: 0.2, ease: "back.out(2)" }, 14.1);
+
+  // =========== ACT 5 · CTA ===========
+  tl.fromTo("#burst", { scale: 0 }, { scale: L.burst.s, duration: 0.46, ease: "power3.in", immediateRender: false }, B(30));
+  tl.to("#ctaDots", { opacity: 1, duration: 0.4 }, 14.55);
+  tl.set("#appIcon", { opacity: 1 }, 14.55);
+  tl.fromTo("#appIcon", { scale: 0, rotation: -20, y: 80 }, { scale: 1, rotation: 0, y: 0, duration: 0.6, ease: "back.out(1.8)", immediateRender: false }, 14.55);
+  all("#wordmark .ch").forEach((c, i) => {
+    tl.set(c, { opacity: 1 }, 14.82 + i * 0.05);
+    tl.fromTo(c, { y: 180, scaleY: 1.4 }, { y: 0, scaleY: 1, duration: 0.5, ease: "back.out(2)", immediateRender: false }, 14.82 + i * 0.05);
+  });
+  all("#tagline .tw").forEach((c, i) => rise(c, 15.28 + i * 0.14, 80));
+  tl.set("#playWrap", { opacity: 1 }, 15.8);
+  tl.fromTo("#playWrap", { y: 150, scale: 0.8 }, { y: 0, scale: 1, duration: 0.55, ease: "back.out(1.7)", immediateRender: false }, 15.8);
+  tl.to("#sheen", { xPercent: 420, duration: 0.7, ease: "power2.inOut" }, 16.3);
+  tl.to("#playWrap", { scale: 0.93, duration: 0.08, ease: "power2.in" }, 17.0);
+  tl.to("#playWrap", { scale: 1, duration: 0.4, ease: "back.out(2.4)" }, 17.08);
+  tl.fromTo("#ctaInner", { scale: 1 }, { scale: 1.04, duration: 3.45, ease: "none" }, 14.55);
+
+  window.__timelines["main"] = tl;
+})();
+
+    </script>
+  </body>
+</html>

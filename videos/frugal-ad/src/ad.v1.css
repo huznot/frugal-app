@@ -1,0 +1,177 @@
+@font-face { font-family: "Fredoka"; font-weight: 500; src: url("assets/fonts/Fredoka_500Medium.ttf") format("truetype"); }
+@font-face { font-family: "Fredoka"; font-weight: 600; src: url("assets/fonts/Fredoka_600SemiBold.ttf") format("truetype"); }
+@font-face { font-family: "Fredoka"; font-weight: 700; src: url("assets/fonts/Fredoka_700Bold.ttf") format("truetype"); }
+@font-face { font-family: "Poppins"; font-weight: 400; src: url("assets/fonts/Poppins_400Regular.ttf") format("truetype"); }
+@font-face { font-family: "Poppins"; font-weight: 500; src: url("assets/fonts/Poppins_500Medium.ttf") format("truetype"); }
+@font-face { font-family: "Poppins"; font-weight: 600; src: url("assets/fonts/Poppins_600SemiBold.ttf") format("truetype"); }
+
+:root {
+  --bg: #ffffff; --alt: #f6f6f6; --ink: #161616; --muted: #707070; --border: #ececec; --hair: #f1f1f1;
+  --red: #ff5050; --redLedge: #c93434; --redSoft: #ffe3e3;
+  --green: #16a870; --greenLedge: #0e7a51; --greenSoft: #ddf5ea;
+  --sun: #ffc53d; --sunLedge: #d39a14; --sky: #3f7bff;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { margin: 0; overflow: hidden; background: var(--bg); }
+#root { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: "Poppins", sans-serif; color: var(--ink); }
+.layer { position: absolute; inset: 0; }
+
+/* ---------- background ---------- */
+#dots { position: absolute; top: 0; left: 0; width: 3200px; height: 3200px;
+  background-image: radial-gradient(circle, rgba(255, 80, 80, 0.2) 2.4px, transparent 2.6px); background-size: 46px 46px; }
+.glow { position: absolute; border-radius: 50%; }
+#glowA { width: 1100px; height: 1100px; background: radial-gradient(circle, rgba(255, 80, 80, 0.16), rgba(255, 80, 80, 0) 68%); }
+#glowB { width: 900px; height: 900px; background: radial-gradient(circle, rgba(255, 197, 61, 0.2), rgba(255, 197, 61, 0) 68%); }
+
+/* ---------- type ---------- */
+.copy { position: absolute; }
+.eyebrow { font-family: "Poppins"; font-weight: 600; text-transform: uppercase; letter-spacing: 0.18em; color: var(--red); font-size: 34px; margin-bottom: 14px; }
+.eyebrow.sm { color: #d24242; font-size: 11px; letter-spacing: 2.2px; margin: 16px 0 10px; }
+.hero { font-family: "Fredoka"; font-weight: 700; line-height: 1.04; letter-spacing: -0.01em; color: var(--ink); white-space: nowrap; }
+.w { display: inline-block; }
+.hl { position: relative; color: #f74a4a; }
+.hl-bar { position: absolute; left: -6px; right: -10px; bottom: 10%; height: 30%; border-radius: 14px; background: var(--redSoft); transform-origin: left center; }
+.hl-txt { position: relative; }
+
+/* ---------- price tags ---------- */
+.tag { position: absolute; display: flex; flex-direction: column; justify-content: center; background: var(--sun); border-radius: 22px; padding: 18px 34px 18px 64px;
+  box-shadow: 0 10px 0 var(--sunLedge), 0 26px 50px rgba(0, 0, 0, 0.12); }
+.tag .hole { position: absolute; left: 24px; top: 50%; width: 20px; height: 20px; margin-top: -10px; border-radius: 50%; background: var(--bg); }
+.tag .tp { font-family: "Fredoka"; font-weight: 700; font-size: 84px; line-height: 1; color: var(--ink); }
+.tag .tcap { font-family: "Poppins"; font-weight: 600; font-size: 24px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink); margin-top: 6px; }
+
+/* ---------- phone ---------- */
+#phoneAnchor { position: absolute; width: 390px; height: 844px; transform-origin: 0 0; }
+#phoneMove { width: 390px; height: 844px; }
+#phone { width: 390px; height: 844px; border-radius: 58px; background: #161616; padding: 12px; box-shadow: 0 40px 80px rgba(22, 22, 22, 0.22), 0 0 0 2px #2c2c2c inset; }
+#screen { position: relative; width: 366px; height: 820px; border-radius: 46px; overflow: hidden; background: #121212; }
+.status { position: absolute; top: 0; left: 0; right: 0; height: 44px; z-index: 5; display: flex; justify-content: space-between; align-items: center; padding: 6px 30px 0; font-family: "Poppins"; font-weight: 600; font-size: 14px; color: #fff; }
+.status .sb-r { display: flex; gap: 4px; }
+.status .sb-r i { display: block; width: 16px; height: 9px; border-radius: 3px; background: currentColor; }
+.scr { position: absolute; inset: 0; }
+.scr.light { background: var(--bg); padding: 52px 18px 0; }
+.card { background: #fff; border: 1px solid var(--border); border-radius: 18px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06); }
+
+/* scan */
+#scrScan { background: #121212; }
+.scan-pill { position: absolute; top: 70px; left: 50%; width: 210px; margin-left: -105px; text-align: center; padding: 8px 0; border-radius: 999px; background: rgba(255, 255, 255, 0.14); color: #fff; font-weight: 600; font-size: 13px; }
+#vf { position: absolute; left: 33px; top: 150px; width: 300px; height: 380px; border-radius: 26px; background: #1e1e1e; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+#vf-img { height: 330px; width: auto; border-radius: 10px; }
+.corner { position: absolute; width: 38px; height: 38px; border-color: var(--sun); border-style: solid; border-width: 0; border-radius: 6px; }
+.corner.tl { top: 16px; left: 16px; border-top-width: 5px; border-left-width: 5px; }
+.corner.tr { top: 16px; right: 16px; border-top-width: 5px; border-right-width: 5px; }
+.corner.bl { bottom: 16px; left: 16px; border-bottom-width: 5px; border-left-width: 5px; }
+.corner.br { bottom: 16px; right: 16px; border-bottom-width: 5px; border-right-width: 5px; }
+#scanline { position: absolute; left: 30px; right: 30px; top: 40px; height: 3px; border-radius: 2px; background: var(--red); box-shadow: 0 0 16px 4px rgba(255, 80, 80, 0.55); }
+#vf-flash { position: absolute; inset: 0; background: #fff; opacity: 0; }
+#scanCheck { position: absolute; left: 148px; top: 305px; width: 70px; height: 70px; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(22, 168, 112, 0.5); }
+#scanCheck svg, .box svg { width: 60%; height: 60%; fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+#toast { position: absolute; left: 14px; right: 14px; top: 570px; display: flex; align-items: center; gap: 10px; padding: 12px; }
+.badge { width: 40px; height: 40px; border-radius: 12px; flex: none; display: flex; align-items: center; justify-content: center; color: #fff; font-family: "Fredoka"; font-weight: 700; font-size: 16px; }
+.t-mid { flex: 1; min-width: 0; }
+.t-name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t-sub { font-weight: 500; font-size: 12px; color: var(--muted); }
+.ptag { position: relative; flex: none; background: var(--sun); border-radius: 10px; padding: 3px 10px 3px 18px; transform: rotate(-2deg); font-family: "Fredoka"; font-weight: 700; font-size: 17px; color: #161616; }
+.ptag .hole { position: absolute; left: 7px; top: 50%; margin-top: -3.5px; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
+
+/* results */
+.topbar { display: flex; align-items: center; gap: 10px; height: 36px; }
+.chev { font-family: "Fredoka"; font-weight: 600; font-size: 30px; line-height: 1; }
+.tb-title { font-family: "Fredoka"; font-weight: 700; font-size: 20px; }
+.prod { display: flex; gap: 12px; padding: 12px; margin-top: 8px; align-items: center; }
+.prod-img { width: 64px; height: 76px; border-radius: 12px; background: var(--alt); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.prod-img img { height: 70px; width: auto; }
+.p-name { font-weight: 600; font-size: 14px; line-height: 1.3; }
+.p-size { font-weight: 500; font-size: 12px; color: var(--muted); }
+.grade { display: flex; align-items: center; gap: 6px; margin-top: 4px; height: 24px; padding: 0 3px 0 9px; border-radius: 999px; background: var(--alt); width: 116px; font-weight: 600; font-size: 11px; }
+.grade b { width: 19px; height: 19px; border-radius: 50%; background: #85bb2f; color: #161616; font-family: "Fredoka"; font-weight: 700; font-size: 12px; display: flex; align-items: center; justify-content: center; margin-left: auto; }
+#rows { position: relative; height: 380px; }
+.row { position: absolute; left: 0; right: 0; top: 0; height: 80px; display: flex; align-items: center; gap: 12px; padding: 0 14px; border-radius: 18px; border: 1px solid var(--border); background: #fff; }
+.r-mid { flex: 1; min-width: 0; }
+.r-name { font-weight: 600; font-size: 14px; }
+.r-sub { font-weight: 500; font-size: 12px; color: var(--muted); }
+.r-price { font-family: "Fredoka"; font-weight: 700; font-size: 21px; color: var(--ink); text-align: right; }
+.r-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.sticker { background: var(--greenLedge); color: #fff; border-radius: 999px; padding: 2px 9px; font-weight: 600; font-size: 9.5px; letter-spacing: 1.2px; }
+.best-ring { position: absolute; inset: -1px; border-radius: 18px; border: 2.5px solid var(--green); opacity: 0; }
+
+/* list */
+.l-title { font-family: "Fredoka"; font-weight: 700; font-size: 30px; margin-top: 6px; }
+.l-sub { font-weight: 500; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+.item { position: relative; display: flex; align-items: center; gap: 12px; height: 54px; border-top: 1px solid var(--hair); }
+.item:first-child { border-top: 0; }
+.box { width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--muted); display: flex; align-items: center; justify-content: center; flex: none; }
+.i-name { flex: 1; font-weight: 600; font-size: 14px; }
+.i-price { font-weight: 600; font-size: 14px; }
+.strike { position: absolute; left: 36px; right: 70px; top: 50%; height: 2px; background: var(--muted); transform-origin: left center; }
+.l-total { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 14px; border-top: 1px solid var(--border); }
+.l-total .label { font-weight: 600; font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); }
+.l-total .ptag { font-size: 22px; padding: 4px 12px 4px 22px; }
+
+/* tab bar */
+#tabbar { position: absolute; left: 12px; right: 12px; bottom: 14px; height: 66px; border-radius: 24px; border: 1px solid var(--border); background: #fff; display: flex; align-items: center; padding: 0 4px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08); z-index: 4; }
+.tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; font-weight: 500; font-size: 10px; color: var(--muted); }
+.tab svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.tab.on { color: #d24242; font-weight: 600; }
+.scan-slot { position: relative; height: 66px; }
+#scanBtn { position: absolute; left: 50%; top: -26px; width: 60px; height: 64px; margin-left: -30px; }
+.sb-ledge { position: absolute; top: 4px; width: 60px; height: 60px; border-radius: 20px; background: var(--redLedge); }
+.sb-face { position: absolute; top: 0; width: 60px; height: 60px; border-radius: 20px; background: var(--red); display: flex; align-items: center; justify-content: center; }
+.sb-face svg { width: 28px; height: 28px; fill: none; stroke: #fff; stroke-width: 2.2; stroke-linecap: round; }
+
+/* ---------- callouts ---------- */
+#saveCard { position: absolute; padding: 34px 44px; border-radius: 34px; border: 3px solid var(--greenSoft); box-shadow: 0 30px 70px rgba(0, 0, 0, 0.16); text-align: left; }
+.sc-label { font-weight: 600; font-size: 30px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--green); }
+.sc-num { font-family: "Fredoka"; font-weight: 700; font-size: 170px; line-height: 1.1; color: var(--greenLedge); font-variant-numeric: tabular-nums; margin: 8px 0 18px; transform-origin: left center; }
+.sc-sub { font-weight: 500; font-size: 28px; color: var(--muted); }
+
+/* ---------- CTA ---------- */
+#burst { position: absolute; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; background: var(--red); }
+#ctaDots { position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(255, 255, 255, 0.16) 2.4px, transparent 2.6px); background-size: 46px 46px; opacity: 0; }
+#ctaInner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+#appIcon { border-radius: 26%; background: #fff; overflow: hidden; box-shadow: 0 16px 0 var(--redLedge), 0 40px 80px rgba(0, 0, 0, 0.2); display: flex; align-items: center; justify-content: center; }
+#appIcon img { width: 118%; height: 118%; }
+#wordmark { font-family: "Fredoka"; font-weight: 700; color: #fff; line-height: 1; display: flex; }
+#wordmark .ch { display: inline-block; }
+#tagline { font-family: "Fredoka"; font-weight: 600; color: #fff; white-space: nowrap; }
+#tagline .tw { display: inline-block; }
+#playWrap { display: block; }
+#playBadge { display: block; width: 100%; height: auto; }
+
+/* ---------- TALL 1080x1920 ---------- */
+[data-layout="tall"] #glowA { left: -380px; top: -300px; }
+[data-layout="tall"] #glowB { left: 420px; top: 1200px; }
+[data-layout="tall"] #s1-move { left: 90px; top: 520px; width: 900px; }
+[data-layout="tall"] #s1 .hero { font-size: 176px; }
+[data-layout="tall"] #s1 .w { display: table; }
+[data-layout="tall"] #tagA { left: 640px; top: 170px; }
+[data-layout="tall"] #tagB { left: 560px; top: 1470px; }
+[data-layout="tall"] #tagC { left: 90px; top: 1560px; }
+[data-layout="tall"] .cap { left: 90px; top: 150px; width: 900px; }
+[data-layout="tall"] .cap .hero { font-size: 128px; }
+[data-layout="tall"] #phoneAnchor { left: 228px; top: 530px; transform: scale(1.6); }
+[data-layout="tall"] #bigTag { left: 30px; top: 1500px; }
+[data-layout="tall"] #saveCard { left: 110px; top: 1440px; width: 860px; }
+[data-layout="tall"] #appIcon { width: 330px; height: 330px; margin-bottom: 70px; }
+[data-layout="tall"] #wordmark { font-size: 250px; }
+[data-layout="tall"] #tagline { font-size: 76px; margin: 20px 0 90px; }
+[data-layout="tall"] #playWrap { width: 600px; }
+
+/* ---------- WIDE 1920x1080 ---------- */
+[data-layout="wide"] #glowA { left: -300px; top: -420px; }
+[data-layout="wide"] #glowB { left: 1250px; top: 400px; }
+[data-layout="wide"] #s1-move { left: 150px; top: 250px; width: 1300px; }
+[data-layout="wide"] #s1 .hero { font-size: 160px; }
+[data-layout="wide"] #tagA { left: 1450px; top: 120px; }
+[data-layout="wide"] #tagB { left: 1330px; top: 700px; }
+[data-layout="wide"] #tagC { left: 1000px; top: 560px; }
+[data-layout="wide"] .cap { left: 150px; top: 250px; width: 1000px; }
+[data-layout="wide"] .cap .hero { font-size: 136px; }
+[data-layout="wide"] #phoneAnchor { left: 1230px; top: 42px; transform: scale(1.18); }
+[data-layout="wide"] #bigTag { left: 780px; top: 600px; }
+[data-layout="wide"] #saveCard { left: 150px; top: 640px; width: 760px; }
+[data-layout="wide"] #saveCard .sc-num { font-size: 140px; }
+[data-layout="wide"] #appIcon { width: 230px; height: 230px; margin-bottom: 44px; }
+[data-layout="wide"] #wordmark { font-size: 200px; }
+[data-layout="wide"] #tagline { font-size: 60px; margin: 10px 0 56px; }
+[data-layout="wide"] #playWrap { width: 440px; }

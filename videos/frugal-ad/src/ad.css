@@ -1,0 +1,204 @@
+@font-face { font-family: "Fredoka"; font-weight: 500; src: url("assets/fonts/Fredoka_500Medium.ttf") format("truetype"); }
+@font-face { font-family: "Fredoka"; font-weight: 600; src: url("assets/fonts/Fredoka_600SemiBold.ttf") format("truetype"); }
+@font-face { font-family: "Fredoka"; font-weight: 700; src: url("assets/fonts/Fredoka_700Bold.ttf") format("truetype"); }
+@font-face { font-family: "Poppins"; font-weight: 400; src: url("assets/fonts/Poppins_400Regular.ttf") format("truetype"); }
+@font-face { font-family: "Poppins"; font-weight: 500; src: url("assets/fonts/Poppins_500Medium.ttf") format("truetype"); }
+@font-face { font-family: "Poppins"; font-weight: 600; src: url("assets/fonts/Poppins_600SemiBold.ttf") format("truetype"); }
+@font-face { font-family: "MCI"; src: url("assets/fonts/MaterialCommunityIcons.ttf") format("truetype"); }
+@font-face { font-family: "Ion"; src: url("assets/fonts/Ionicons.ttf") format("truetype"); }
+
+:root {
+  --bg: #ffffff; --alt: #f6f6f6; --ink: #161616; --muted: #707070; --border: #ececec; --hair: #f1f1f1;
+  --red: #ff5050; --redLedge: #c93434; --redSoft: #ffe3e3;
+  --green: #16a870; --greenLedge: #0e7a51; --greenSoft: #ddf5ea;
+  --sun: #ffc53d; --sunLedge: #d39a14; --sky: #3f7bff;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { margin: 0; overflow: hidden; background: var(--bg); }
+#root { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: "Poppins", sans-serif; color: var(--ink); }
+.layer { position: absolute; inset: 0; }
+.mci { font-family: "MCI"; font-weight: normal; font-style: normal; line-height: 1; }
+.ion { font-family: "Ion"; font-weight: normal; font-style: normal; line-height: 1; }
+
+/* ---------- background ---------- */
+#bgColor { background: var(--bg); overflow: hidden; }
+#dots { position: absolute; top: 0; left: 0; width: 3400px; height: 3400px;
+  background-image: radial-gradient(circle, rgba(255, 80, 80, 0.22) 2.6px, transparent 2.8px); background-size: 48px 48px; }
+#flash { background: #fff; opacity: 0; pointer-events: none; }
+
+/* ---------- type ---------- */
+.copy { position: absolute; }
+.eyebrow { font-family: "Poppins"; font-weight: 600; text-transform: uppercase; letter-spacing: 0.18em; color: var(--red); font-size: 36px; margin-bottom: 12px; }
+.hero { font-family: "Fredoka"; font-weight: 700; line-height: 1.04; letter-spacing: -0.01em; color: var(--ink); white-space: nowrap; }
+.w { display: inline-block; }
+.hl { position: relative; color: #f74a4a; }
+.hl-bar { position: absolute; left: -6px; right: -10px; bottom: 10%; height: 30%; border-radius: 14px; background: var(--redSoft); transform-origin: left center; }
+.hl-txt { position: relative; }
+.cap-sub { font-family: "Poppins"; font-weight: 500; color: var(--muted); font-size: 44px; margin-top: 18px; }
+
+/* ---------- price tags ---------- */
+.tag { position: absolute; display: flex; flex-direction: column; justify-content: center; background: var(--sun); border-radius: 22px; padding: 16px 32px 16px 60px;
+  box-shadow: 0 10px 0 var(--sunLedge), 0 26px 50px rgba(0, 0, 0, 0.12); }
+.tag .hole { position: absolute; left: 22px; top: 50%; width: 20px; height: 20px; margin-top: -10px; border-radius: 50%; background: var(--bg); }
+.tag .tp { font-family: "Fredoka"; font-weight: 700; font-size: 84px; line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums; }
+.tag.big { position: relative; padding: 22px 46px 22px 84px; border-radius: 30px; box-shadow: 0 14px 0 var(--sunLedge), 0 30px 60px rgba(0, 0, 0, 0.14); }
+.tag.big .hole { left: 30px; width: 28px; height: 28px; margin-top: -14px; }
+.tag.big .tp { font-size: 150px; }
+
+/* ---------- ACT 1 ---------- */
+.item { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.it-tile { display: flex; align-items: center; justify-content: center; background: #fff; border: 3px solid var(--border); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.1); }
+.it-word { font-family: "Fredoka"; font-weight: 700; color: var(--ink); line-height: 1; }
+#stamp { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+#stamp span { display: block; font-family: "Fredoka"; font-weight: 700; color: #e03c3c; background: #fff; border: 14px solid #e03c3c; border-radius: 36px; padding: 12px 44px 20px; line-height: 1; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.18); }
+
+/* ---------- phone ---------- */
+#phoneAnchor { position: absolute; width: 390px; height: 844px; transform-origin: 0 0; }
+#phoneMove { position: relative; width: 390px; height: 844px; }
+#phone { position: relative; width: 390px; height: 844px; border-radius: 58px; background: #161616; padding: 12px; box-shadow: 0 40px 80px rgba(22, 22, 22, 0.25), 0 0 0 2px #2c2c2c inset; }
+#screen { position: relative; width: 366px; height: 820px; border-radius: 46px; overflow: hidden; background: #121212; }
+#ring { position: absolute; left: 45px; top: 202px; width: 300px; height: 300px; border-radius: 50%; border: 8px solid var(--green); opacity: 0; }
+.status { position: absolute; top: 0; left: 0; right: 0; height: 44px; z-index: 5; display: flex; justify-content: space-between; align-items: center; padding: 6px 30px 0; font-weight: 600; font-size: 14px; color: #fff; }
+.status .sb-r { display: flex; gap: 4px; }
+.status .sb-r i { display: block; width: 16px; height: 9px; border-radius: 3px; background: currentColor; }
+.scan-pill { position: absolute; top: 70px; left: 50%; width: 210px; margin-left: -105px; text-align: center; padding: 8px 0; border-radius: 999px; background: rgba(255, 255, 255, 0.14); color: #fff; font-weight: 600; font-size: 13px; }
+#vf { position: absolute; left: 33px; top: 150px; width: 300px; height: 380px; border-radius: 26px; background: #1e1e1e; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+#vf-img { height: 330px; width: auto; border-radius: 10px; }
+.corner { position: absolute; width: 38px; height: 38px; border-color: var(--sun); border-style: solid; border-width: 0; border-radius: 6px; }
+.corner.tl { top: 16px; left: 16px; border-top-width: 5px; border-left-width: 5px; }
+.corner.tr { top: 16px; right: 16px; border-top-width: 5px; border-right-width: 5px; }
+.corner.bl { bottom: 16px; left: 16px; border-bottom-width: 5px; border-left-width: 5px; }
+.corner.br { bottom: 16px; right: 16px; border-bottom-width: 5px; border-right-width: 5px; }
+#scanline { position: absolute; left: 30px; right: 30px; top: 40px; height: 3px; border-radius: 2px; background: var(--red); box-shadow: 0 0 16px 4px rgba(255, 80, 80, 0.55); }
+#vf-flash { position: absolute; inset: 0; background: #fff; opacity: 0; }
+#scanCheck { position: absolute; left: 148px; top: 305px; width: 70px; height: 70px; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 44px; box-shadow: 0 8px 24px rgba(22, 168, 112, 0.5); }
+#toast { position: absolute; left: 14px; right: 14px; top: 570px; display: flex; align-items: center; gap: 10px; padding: 12px; }
+.card { background: #fff; border: 1px solid var(--border); border-radius: 18px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06); }
+#toast .badge { width: 40px; height: 40px; border-radius: 12px; font-size: 16px; }
+.badge { flex: none; display: flex; align-items: center; justify-content: center; color: #fff; font-family: "Fredoka"; font-weight: 700; }
+.t-mid { flex: 1; min-width: 0; }
+.t-name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t-sub { font-weight: 500; font-size: 12px; color: var(--muted); }
+.ptag { position: relative; flex: none; background: var(--sun); border-radius: 10px; padding: 3px 10px 3px 18px; transform: rotate(-2deg); font-family: "Fredoka"; font-weight: 700; font-size: 17px; color: #161616; }
+.ptag .hole { position: absolute; left: 7px; top: 50%; margin-top: -3.5px; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
+
+/* ---------- ACT 3 (full-frame UI at video scale) ---------- */
+#prodChip { position: absolute; display: flex; align-items: center; gap: 26px; padding: 18px 28px; border-radius: 34px; border-width: 3px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08); }
+.pc-img { width: 96px; height: 110px; border-radius: 22px; background: var(--alt); display: flex; align-items: center; justify-content: center; overflow: hidden; flex: none; }
+.pc-img img { height: 100px; width: auto; }
+.pc-mid { flex: 1; }
+.pc-name { font-weight: 600; font-size: 40px; line-height: 1.2; }
+.pc-sub { font-weight: 500; font-size: 30px; color: var(--muted); }
+.grade b { width: 70px; height: 70px; border-radius: 50%; background: #85bb2f; color: #161616; font-family: "Fredoka"; font-weight: 700; font-size: 40px; display: flex; align-items: center; justify-content: center; }
+#rows { position: absolute; height: 780px; }
+.row { position: absolute; left: 0; right: 0; top: 0; height: 170px; display: flex; align-items: center; gap: 28px; padding: 0 36px; border-radius: 36px; border: 3px solid var(--border); background: #fff; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06); }
+.row .badge { width: 104px; height: 104px; border-radius: 30px; font-size: 40px; }
+.r-mid { flex: 1; min-width: 0; }
+.r-name { font-weight: 600; font-size: 44px; line-height: 1.2; }
+.r-sub { font-weight: 500; font-size: 32px; color: var(--muted); }
+.r-price { font-family: "Fredoka"; font-weight: 700; font-size: 72px; color: var(--ink); }
+.best-ring { position: absolute; inset: -3px; border-radius: 36px; border: 7px solid var(--green); opacity: 0; }
+.sticker { position: absolute; top: -26px; right: 34px; background: var(--greenLedge); color: #fff; border-radius: 999px; padding: 8px 24px; font-weight: 600; font-size: 28px; letter-spacing: 3px; box-shadow: 0 8px 20px rgba(14, 122, 81, 0.35); }
+.conf { position: absolute; width: 0; height: 0; }
+#confA { left: 50%; top: 85px; }
+.conf i { position: absolute; left: -9px; top: -14px; width: 18px; height: 28px; border-radius: 4px; }
+#callout { position: absolute; display: flex; align-items: center; gap: 44px; }
+#savePill { font-family: "Fredoka"; font-weight: 700; font-size: 58px; color: #fff; background: #e03c3c; border-radius: 999px; padding: 14px 40px 18px; box-shadow: 0 10px 0 var(--redLedge); }
+
+/* ---------- stripes ---------- */
+.stripe { position: absolute; top: 0; bottom: 0; left: 0; clip-path: polygon(14% 0, 100% 0, 100% 100%, 0 100%); }
+
+/* ---------- ACT 4 ---------- */
+#listCard { position: absolute; padding: 36px 44px 30px; border-radius: 44px; border-width: 3px; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.1); }
+.l-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.l-title { font-family: "Fredoka"; font-weight: 700; font-size: 80px; }
+.l-count { font-weight: 600; font-size: 40px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.item-row { position: relative; display: flex; align-items: center; gap: 26px; height: 100px; border-top: 2px solid var(--hair); }
+.box { width: 54px; height: 54px; border-radius: 16px; border: 4px solid #9a9a9a; display: flex; align-items: center; justify-content: center; flex: none; color: #fff; font-size: 38px; }
+.box .ion { display: block; }
+.i-name { flex: 1; font-weight: 600; font-size: 40px; }
+.i-price { font-weight: 600; font-size: 40px; font-variant-numeric: tabular-nums; }
+.strike { position: absolute; left: 80px; right: 170px; top: 50%; height: 4px; margin-top: -2px; border-radius: 2px; background: #8a8a8a; transform-origin: left center; }
+.l-total { display: flex; justify-content: space-between; align-items: center; padding-top: 22px; border-top: 3px solid var(--border); }
+.l-total .label { font-weight: 600; font-size: 32px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); }
+.l-total .ptag { font-size: 52px; padding: 6px 22px 8px 42px; border-radius: 18px; }
+.l-total .ptag .hole { left: 16px; width: 14px; height: 14px; margin-top: -7px; }
+#saved { position: absolute; text-align: center; }
+.sv-label { font-weight: 600; font-size: 50px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--greenLedge); }
+.sv-num { font-family: "Fredoka"; font-weight: 700; line-height: 1.05; margin: 22px 0 26px; color: var(--greenLedge); font-variant-numeric: tabular-nums; }
+.sv-sub { font-weight: 500; font-size: 44px; color: var(--muted); }
+#bigBtn { position: absolute; }
+.bb-ledge { position: absolute; left: 0; right: 0; bottom: 0; top: 20px; border-radius: 48px; background: var(--redLedge); }
+.bb-face { position: absolute; left: 0; right: 0; top: 0; bottom: 20px; border-radius: 48px; background: var(--red); display: flex; align-items: center; justify-content: center; gap: 26px; color: #fff; }
+.bb-face .ion { font-size: 86px; }
+.bb-txt { font-family: "Fredoka"; font-weight: 700; font-size: 72px; letter-spacing: 3px; text-transform: uppercase; }
+
+/* ---------- CTA ---------- */
+#burst { position: absolute; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; background: var(--red); }
+#ctaDots { position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(255, 255, 255, 0.18) 2.6px, transparent 2.8px); background-size: 48px 48px; opacity: 0; }
+#ctaInner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+#appIcon { border-radius: 27%; background: #fff; padding: 20px; box-shadow: 0 18px 0 var(--redLedge), 0 44px 90px rgba(0, 0, 0, 0.22); }
+#tileFrame { width: 100%; height: 100%; border-radius: 22%; overflow: hidden; }
+#tileFrame img { display: block; width: 100%; height: 100%; }
+#wordmark { font-family: "Fredoka"; font-weight: 700; color: #fff; line-height: 1; display: flex; }
+#wordmark .ch { display: inline-block; }
+#tagline { font-family: "Fredoka"; font-weight: 600; color: #fff; white-space: nowrap; }
+#tagline .tw { display: inline-block; }
+#playWrap { position: relative; overflow: hidden; border-radius: 22px; }
+#playBadge { display: block; width: 100%; height: auto; }
+#sheen { position: absolute; top: -20%; bottom: -20%; left: 0; width: 30%; background: linear-gradient(100deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0)); }
+
+/* ================= TALL 1080x1920 ================= */
+[data-layout="tall"] .it-tile { width: 420px; height: 420px; border-radius: 110px; font-size: 290px; }
+[data-layout="tall"] .it-word { font-size: 210px; margin-top: 40px; }
+[data-layout="tall"] .it-tag { left: 610px; top: 540px; }
+[data-layout="tall"] #stamp span { font-size: 150px; }
+[data-layout="tall"] #a1-lines { left: 90px; top: 520px; width: 900px; }
+[data-layout="tall"] #a1-lines .hero { font-size: 196px; }
+[data-layout="tall"] #a1-lines .w { display: table; }
+[data-layout="tall"] .cap { left: 90px; top: 140px; width: 900px; }
+[data-layout="tall"] .cap .hero { font-size: 140px; }
+[data-layout="tall"] #cap2 .hero { font-size: 180px; }
+[data-layout="tall"] #phoneAnchor { left: 228px; top: 592px; transform: scale(1.55); }
+[data-layout="tall"] #prodChip { left: 90px; top: 520px; width: 900px; }
+[data-layout="tall"] #rows { left: 90px; top: 720px; width: 900px; }
+[data-layout="tall"] #callout { left: 0; right: 0; top: 1540px; justify-content: center; }
+[data-layout="tall"] .stripe { width: 1400px; }
+[data-layout="tall"] #listCard { left: 90px; top: 110px; width: 900px; }
+[data-layout="tall"] #saved { left: 0; right: 0; top: 1080px; }
+[data-layout="tall"] .sv-num { font-size: 290px; }
+[data-layout="tall"] #confB { left: 540px; top: 1300px; }
+[data-layout="tall"] #bigBtn { left: 170px; top: 1560px; width: 740px; height: 200px; }
+[data-layout="tall"] #appIcon { width: 380px; height: 380px; margin-bottom: 80px; }
+[data-layout="tall"] #wordmark { font-size: 250px; }
+[data-layout="tall"] #tagline { font-size: 78px; margin: 22px 0 90px; }
+[data-layout="tall"] #playWrap { width: 620px; }
+
+/* ================= WIDE 1920x1080 ================= */
+[data-layout="wide"] .it-tile { width: 330px; height: 330px; border-radius: 88px; font-size: 230px; }
+[data-layout="wide"] .it-word { font-size: 170px; margin-top: 24px; }
+[data-layout="wide"] .it-tag { left: 1060px; top: 220px; }
+[data-layout="wide"] #stamp span { font-size: 150px; }
+[data-layout="wide"] #a1-lines { left: 150px; top: 290px; width: 1600px; }
+[data-layout="wide"] #a1-lines .hero { font-size: 180px; }
+[data-layout="wide"] .cap { left: 150px; top: 250px; width: 1000px; }
+[data-layout="wide"] .cap .hero { font-size: 136px; }
+[data-layout="wide"] #cap2 .hero { font-size: 190px; }
+[data-layout="wide"] #cap3 { top: 140px; }
+[data-layout="wide"] #phoneAnchor { left: 1230px; top: 42px; transform: scale(1.18); }
+[data-layout="wide"] #prodChip { left: 150px; top: 520px; width: 760px; }
+[data-layout="wide"] #rows { left: 1010px; top: 150px; width: 790px; }
+[data-layout="wide"] #callout { left: 150px; top: 740px; }
+[data-layout="wide"] #callout .tag.big .tp { font-size: 120px; }
+[data-layout="wide"] #savePill { font-size: 48px; }
+[data-layout="wide"] .stripe { width: 2500px; }
+[data-layout="wide"] #listCard { left: 120px; top: 70px; width: 780px; }
+[data-layout="wide"] #listCard .item-row { height: 92px; }
+[data-layout="wide"] #saved { left: 960px; right: 0; top: 110px; }
+[data-layout="wide"] .sv-num { font-size: 250px; }
+[data-layout="wide"] #confB { left: 1440px; top: 330px; }
+[data-layout="wide"] #bigBtn { left: 1110px; top: 700px; width: 660px; height: 190px; }
+[data-layout="wide"] #appIcon { width: 250px; height: 250px; padding: 14px; margin-bottom: 50px; }
+[data-layout="wide"] #wordmark { font-size: 190px; }
+[data-layout="wide"] #tagline { font-size: 58px; margin: 10px 0 56px; }
+[data-layout="wide"] #playWrap { width: 440px; }

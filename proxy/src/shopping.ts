@@ -96,6 +96,8 @@ export function parseSize(title: string): ShopItem['size'] {
   if (/\bdozen\b/.test(t)) return { amount: 12, unit: 'each', label: '12 ct' };
   m = t.match(/(\d+)\s*-?\s*(?:pack|pk|ct|count|eggs|rolls|pieces|pcs|bags|cans|bottles)\b/);
   if (m && +m[1] > 0 && +m[1] <= 200) return { amount: +m[1], unit: 'each', label: `${m[1]} ct` };
+  // sold singly: "Fresh Banana Each", "Avocado, ea" (but not "Bananas, Bunch" or "each bunch")
+  if (/\b(each|ea)\b/.test(t) && !/\b(bunch|bag|pack|box|case|tray)\b/.test(t)) return { amount: 1, unit: 'each', label: '1 ct' };
   return undefined;
 }
 

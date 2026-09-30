@@ -39,8 +39,8 @@ export function OfferRow({ offer, onPress }: { offer: Offer; onPress: () => void
         gap: 12,
         padding: 12,
         borderRadius: radius.lg,
-        borderWidth: offer.best ? 2 : 1,
-        borderColor: offer.best ? colors.success : colors.border,
+        borderWidth: offer.best || offer.cheapest ? 2 : 1,
+        borderColor: offer.best ? colors.success : offer.cheapest ? colors.sky : colors.border,
         backgroundColor: pressed ? colors.surfaceAlt : colors.surface,
         transform: [{ scale: pressed ? 0.99 : 1 }],
       })}
@@ -78,8 +78,11 @@ export function OfferRow({ offer, onPress }: { offer: Offer; onPress: () => void
             </Text>
           )}
         </View>
-        {offer.best ? (
-          <Sticker label="BEST VALUE" bg={colors.success} />
+        {offer.best || offer.cheapest ? (
+          <View style={{ alignItems: 'flex-end', gap: 4 }}>
+            {offer.best && <Sticker label="BEST VALUE" bg={colors.success} />}
+            {offer.cheapest && <Sticker label="CHEAPEST" bg={colors.sky} />}
+          </View>
         ) : offer.tag ? (
           <Sticker label={offer.tag.toUpperCase()} bg={colors.primary} />
         ) : null}

@@ -15,7 +15,8 @@
  */
 
 import { extractResults, normalize, parseSize, rank, ShopItem, unitPriceOf, Unit } from './shopping';
-import { estimateSizes, identifyWithWorkersAi, judge, rerank, rewriteQuery, Identified } from './ai';
+import { chainShortName, estimateSizes, identifyWithWorkersAi, judge, rerank, rewriteQuery, Identified } from './ai';
+import brandIndex from '../../src/services/brandIndex.json';
 
 interface Env {
   BRIGHTDATA_API_KEY?: string;
@@ -154,7 +155,7 @@ async function canonicalLocation(location: string, gl: string, ctx: ExecutionCon
 const DOMAINS: Record<string, string> = { ca: 'google.ca', us: 'google.com', gb: 'google.co.uk', au: 'google.com.au', ie: 'google.ie', nz: 'google.co.nz', in: 'google.co.in' };
 const CACHE_SECONDS = 6 * 3600; // prices barely move within hours; caching saves quota and makes repeat searches instant
 // Bump whenever ranking/AI logic changes so users never see results ranked by old logic.
-const RANK_VERSION = 11;
+const RANK_VERSION = 19;
 
 type Query = { q: string; gl: string; location: string };
 type Raw = { r: any; nearbyGroup: boolean }[];
@@ -206,7 +207,7 @@ async function raceProviders(providers: { name: string; run: () => Promise<Raw> 
       Promise.all(
         launched
           .filter((l) => l.name !== winner)
-          .map((l) => Promise.race([l.promise, new Promise<ShopItem[]>((r) => setTimeout(() => r([]), 20000))]).catch(() => [] as ShopItem[])),
+          .map((l) => Promise.race([l.promise, new Promise<ShopItem[]>((r) => setTimeout(() => r([]), 15000))]).catch(() => [] as ShopItem[])),
       ).then((lists) => lists.flat());
 
     const launch = () => {
@@ -236,6 +237,124 @@ async function raceProviders(providers: { name: string; run: () => Promise<Raw> 
   });
 }
 
+// ---------- Chains near the shopper (so each one's own listings are searched too) ----------
+
+const BRANDS = brandIndex as unknown as Record<string, [string, string][]>;
+const brandKey = (s: string) =>
+  s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, ' ').trim();
+
+/** Store name → chain (Wikidata id + its official name), via the Name Suggestion Index. "Safeway Pembina" → Safeway. */
+function chainOf(name: string, country: string): { id: string; name: string } | null {
+  let key = brandKey(name);
+  while (key) {
+    const hits = BRANDS[key];
+    if (hits) {
+      const hit = hits.find((h) => h[1] === country) ?? hits.find((h) => h[1] === '001') ?? hits[0];
+      return { id: hit[0], name: key };
+    }
+    key = key.includes(' ') ? key.slice(0, key.lastIndexOf(' ')) : '';
+  }
+  return null;
+}
+
+const CHAIN_COUNT = 3;
+const CHAIN_RADIUS_KM = 15;
+const CHAIN_DEADLINE_MS = 14000;
+
+/**
+ * The grocery chains shoppers near this point can walk into, biggest presence first (most
+ * branches within 15 km, then nearest). General store data — no hand-made chain lists.
+ */
+async function nearbyChains(env: Env, lat: number, lon: number, gl: string, ctx: ExecutionContext): Promise<{ id: string; name: string }[]> {
+  if (!env.STORES_DB || !isFinite(lat) || !isFinite(lon)) return [];
+  const tLat = Math.round(lat * 10) / 10;
+  const tLon = Math.round(lon * 10) / 10;
+  const key = `chains/v1/${gl}/${tLat}/${tLon}`;
+  const hit = await cacheGet(key);
+  if (hit) return hit.chains;
+
+  const dLat = CHAIN_RADIUS_KM / 111;
+  const dLon = CHAIN_RADIUS_KM / (111 * Math.cos((tLat * Math.PI) / 180));
+  const { results } = await env.STORES_DB.prepare(
+    "SELECT name, brand, lat, lon FROM stores WHERE kind IN ('supermarket', 'wholesale') AND lat BETWEEN ?1 AND ?2 AND lon BETWEEN ?3 AND ?4 LIMIT 3000",
+  )
+    .bind(tLat - dLat, tLat + dLat, tLon - dLon, tLon + dLon)
+    .all<any>();
+  const country = gl.toUpperCase();
+  const tally = new Map<string, { id: string; name: string; count: number; nearest: number }>();
+  for (const s of results ?? []) {
+    const chain = chainOf(s.brand || s.name, country) ?? (s.brand ? chainOf(s.name, country) : null);
+    if (!chain) continue;
+    const km = metres({ lat: tLat, lon: tLon }, s) / 1000;
+    if (km > CHAIN_RADIUS_KM) continue;
+    const t = tally.get(chain.id) ?? { ...chain, count: 0, nearest: Infinity };
+    t.count++;
+    t.nearest = Math.min(t.nearest, km);
+    tally.set(chain.id, t);
+  }
+  const chains = [...tally.values()]
+    .filter((c) => c.count >= 2) // a real presence in the area, not a one-off
+    .sort((a, b) => b.count - a.count || a.nearest - b.nearest)
+    .slice(0, CHAIN_COUNT)
+    .map(({ id, name }) => ({ id, name }));
+  ctx.waitUntil(cachePut(key, { chains }, 7 * 86400));
+  return chains;
+}
+
+/** What shoppers call a chain in a search ("real canadian superstore" → "superstore"). Cached 90 days. */
+async function chainSearchName(env: Env, chain: { id: string; name: string }, ctx: ExecutionContext): Promise<string> {
+  const key = `chainname/v1/${chain.id}`;
+  const hit = await cacheGet(key);
+  if (hit?.name) return hit.name;
+  const name = (await chainShortName(env, chain.name)) ?? chain.name;
+  ctx.waitUntil(cachePut(key, { name }, 90 * 86400));
+  return name;
+}
+
+/**
+ * One chain's own listings for a search. A general Google Shopping search only returns ~40
+ * listings, often none from the store down the street; "<search> <chain>" returns that store's
+ * range (its big packs and store brands included). Bright Data sometimes can't read the page Google
+ * shows for a store-named search; then SerpApi is asked instead (at most `budget.serp` times per
+ * search, to spare its small quota), otherwise Bright Data once more.
+ */
+async function chainListings(
+  env: Env,
+  searchQ: string,
+  typed: string,
+  chainName: string,
+  gl: string,
+  location: string,
+  started: number,
+  budget: { serp: number },
+): Promise<ShopItem[]> {
+  // Google shows some store-named searches as a store page Bright Data can't read; other wording
+  // of the same search usually gets listings, so try the shopper's own words next.
+  const wordings = [...new Set([`${searchQ} ${chainName}`, `${typed} ${chainName}`])];
+  for (let attempt = 0; attempt < 3; attempt++) {
+    // Everything must land within Cloudflare's ~30 s for background work, refinement included.
+    const left = CHAIN_DEADLINE_MS - (Date.now() - started);
+    if (left < 3000) break;
+    const useSerp = attempt >= wordings.length && env.SERPAPI_KEY && budget.serp > 0;
+    if (attempt >= wordings.length && !useSerp) break;
+    if (useSerp) budget.serp--;
+    const q = wordings[Math.min(attempt, wordings.length - 1)];
+    try {
+      const raw = useSerp ? fromSerpStyle({ q, gl, location }, 'serpapi', env.SERPAPI_KEY!) : fromBrightData({ q, gl, location }, env);
+      const items = normalize(await withDeadline(raw, left));
+      if (items.length) return items;
+    } catch {
+      // next wording, or the other provider
+    }
+  }
+  return [];
+}
+
+const withDeadline = <T>(p: Promise<T>, ms: number) =>
+  Promise.race([p, new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))]);
+
+// ---------- Search ----------
+
 async function groceryQuery(env: Env, q: string, ctx: ExecutionContext): Promise<string> {
   const key = `rewrite/v1/${encodeURIComponent(q.toLowerCase())}`;
   const hit = await cacheGet(key);
@@ -245,20 +364,66 @@ async function groceryQuery(env: Env, q: string, ctx: ExecutionContext): Promise
   return rewritten;
 }
 
+/** Inline (base64) images would make responses ~1 MB: keep them in one cache entry, hand out short URLs. */
+function bundleImages(items: ShopItem[], origin: string, bundleId: string): Record<string, [string, string]> {
+  const bundle: Record<string, [string, string]> = {};
+  for (const item of items) {
+    const m = item.thumbnail?.match(/^data:(image\/[a-z+]+);base64,(.+)$/);
+    if (!m) continue;
+    const imgId = hashString(item.id + item.seller + item.title);
+    bundle[imgId] = [m[1], m[2]];
+    item.thumbnail = `${origin}/img/${bundleId}/${imgId}`;
+  }
+  return bundle;
+}
+
+const sameListing = (a: ShopItem, b: ShopItem) => a.seller === b.seller && a.title === b.title && a.price === b.price;
+
+/**
+ * Search, in three quick steps so the shopper sees results right away:
+ *   1. (~2–4 s, this response) a general Google Shopping search near them, junk removed by an AI reranker
+ *   2. (+~3 s, /refine) the AI decides what they meant and fills missing pack sizes → best value + cheapest
+ *   3. (+~10 s, background) each big chain near them is searched by name too, merged and judged the same way
+ * `judged` tells the app step 2 is done, `more: false` that step 3 is.
+ */
 async function shopping(url: URL, env: Env, ctx: ExecutionContext) {
   const q = (url.searchParams.get('q') ?? '').trim().replace(/\s+/g, ' ').slice(0, 120);
   const gl = (url.searchParams.get('gl') ?? 'ca').toLowerCase().slice(0, 2);
-  if (!q) return json({ items: [], judged: true });
+  if (!q) return json({ items: [], judged: true, more: false });
+  const lat = Number(url.searchParams.get('lat') ?? NaN);
+  const lon = Number(url.searchParams.get('lon') ?? NaN);
   const location = await canonicalLocation((url.searchParams.get('location') ?? '').slice(0, 100), gl, ctx);
+  const area = location ? location.toLowerCase() : isFinite(lat) && isFinite(lon) ? `${Math.round(lat * 10) / 10},${Math.round(lon * 10) / 10}` : '';
 
-  // Shared cache across all users: the same query in the same city is only paid for once per 6 h.
-  const cacheKey = `shopping/r${RANK_VERSION}/${gl}/${hashString(location.toLowerCase())}/${encodeURIComponent(q.toLowerCase())}`;
+  // Shared cache across all users: the same query in the same area is only paid for once per 6 h.
+  const cacheKey = `shopping/r${RANK_VERSION}/${gl}/${hashString(area)}/${encodeURIComponent(q.toLowerCase())}`;
+  const origin = url.origin;
+  // Steps 2 and 3 run as separate /refine requests so each gets its own budget of outgoing calls.
+  const call = env.SELF ? env.SELF.fetch.bind(env.SELF) : fetch;
+  const refineCall = (phase: number) =>
+    call(`${origin}/refine?${new URLSearchParams({ key: cacheKey, q, phase: String(phase) })}`, { headers: { 'X-App-Key': env.APP_KEY ?? '' } }).catch(() => {});
+
   const hit = await cacheGet(cacheKey);
-  if (hit) return json(hit, 200, { 'X-Cache': 'HIT' });
+  if (hit) {
+    // Store listings merged in after the first answer still need judging. Background work only
+    // gets ~30 s, so the app's next check-in (a fresh request) starts that, once.
+    if (hit.toJudge && !(hit.judging > Date.now() - 20000)) {
+      ctx.waitUntil(cachePut(cacheKey, { ...hit, judging: Date.now() }, CACHE_SECONDS).then(() => refineCall(2)));
+    }
+    return json(hit, 200, { 'X-Cache': 'HIT' });
+  }
 
   // Turn what the shopper typed into the search that finds it at grocery stores ("apple" →
   // "fresh apples produce", not iPhones). Cached for 30 days per search term.
-  const searchQ = await groceryQuery(env, q, ctx);
+  const [searchQ, chains] = await Promise.all([groceryQuery(env, q, ctx), nearbyChains(env, lat, lon, gl, ctx).catch(() => [])]);
+  const started = Date.now();
+  const budget = { serp: 1 };
+  // Chain searches start now, in parallel with the general one; they're merged in step 3.
+  const chainJob =
+    env.BRIGHTDATA_API_KEY && chains.length
+      ? Promise.all(chains.map(async (c) => chainListings(env, searchQ, q, await chainSearchName(env, c, ctx), gl, location, started, budget))).then((l) => l.flat())
+      : Promise.resolve([] as ShopItem[]);
+
   const providers: { name: string; run: () => Promise<Raw> }[] = [];
   if (env.BRIGHTDATA_API_KEY) providers.push({ name: 'brightdata', run: () => fromBrightData({ q: searchQ, gl, location }, env) });
   if (env.SERPAPI_KEY) providers.push({ name: 'serpapi', run: () => fromSerpStyle({ q: searchQ, gl, location }, 'serpapi', env.SERPAPI_KEY!) });
@@ -269,147 +434,121 @@ async function shopping(url: URL, env: Env, ctx: ExecutionContext) {
   if (!found) return json({ error: 'shopping-failed' }, 502);
   let items = found.items;
 
-  // Inline (base64) product images would make the response ~1 MB. Keep them all in ONE cache
-  // entry (Cloudflare limits outgoing calls per request) and give the app short URLs instead.
-  const origin = url.origin;
   const bundleId = hashString(cacheKey);
-  const bundle: Record<string, [string, string]> = {};
-  for (const item of items) {
-    const m = item.thumbnail?.match(/^data:(image\/[a-z+]+);base64,(.+)$/);
-    if (!m) continue;
-    const imgId = hashString(item.id + item.seller + item.title);
-    bundle[imgId] = [m[1], m[2]];
-    item.thumbnail = `${origin}/img/${bundleId}/${imgId}`;
-  }
+  const bundle = bundleImages(items, origin, bundleId);
   if (Object.keys(bundle).length) ctx.waitUntil(cachePut(`imgs/${bundleId}`, bundle, 24 * 3600));
 
-  // Step 1 (fast, ~0.5 s): an AI reranker scores every title against the search and drops
-  // unrelated listings (iPhones for "apple"). Scores give a provisional order.
-  {
-    const scores = await rerank(env, searchQ, items.map((i) => i.title));
-    if (scores) {
-      items.forEach((it, i) => (it.score = Math.round(scores[i] * 1000) / 1000));
-      const top = Math.max(...scores);
-      items = items.filter((i) => (i.score ?? 0) >= Math.min(0.02, top * 0.1));
-    }
+  // Step 1: an AI reranker scores every title against the search and drops unrelated listings
+  // (iPhones for "apple"). Scores give a provisional order.
+  const scores = await rerank(env, searchQ, items.map((i) => i.title));
+  if (scores) {
+    items.forEach((it, i) => (it.score = Math.round(scores[i] * 1000) / 1000));
+    const top = Math.max(...scores);
+    items = items.filter((i) => (i.score ?? 0) >= Math.min(0.02, top * 0.1));
   }
   items = rank(items).slice(0, 40);
-  const first = { items, judged: false, meaning: null as string | null, isFood: null as boolean | null, unit: null as Unit | null, source: found.source };
+  const first = { items, judged: false, more: true, meaning: null as string | null, isFood: null as boolean | null, unit: null as Unit | null, source: found.source };
 
-  // Step 2 runs as a separate request (/refine) so it gets its own budget of outgoing calls:
-  // the AI decides what the shopper meant, fills missing sizes, and the refined ranking replaces
-  // this result in the cache. The app picks it up a few seconds later.
+
   ctx.waitUntil(
     (async () => {
       await cachePut(cacheKey, first, CACHE_SECONDS);
-      // Merge in results from a slower provider that was still running, so the refined list has
-      // the best of both (e.g. Bright Data's local produce listings arriving after SerpApi's).
-      const extra = (await found.later).filter((e) => !items.some((i) => i.seller === e.seller && i.title === e.title && i.price === e.price));
-      if (extra.length) {
-        const scores = await rerank(env, searchQ, extra.map((i) => i.title));
-        const top = Math.max(0, ...items.map((i) => i.score ?? 0));
-        const kept = extra.filter((e, idx) => {
-          e.score = scores ? Math.round(scores[idx] * 1000) / 1000 : undefined;
-          return !scores || (e.score ?? 0) >= Math.min(0.02, top * 0.1);
-        });
-        // Their inline images go into a second bundle, same as the first batch.
-        const extraBundle: Record<string, [string, string]> = {};
-        for (const e of kept) {
-          const m = e.thumbnail?.match(/^data:(image\/[a-z+]+);base64,(.+)$/);
-          if (!m) continue;
-          const imgId = hashString(e.id + e.seller + e.title);
-          extraBundle[imgId] = [m[1], m[2]];
-          e.thumbnail = `${origin}/img/${bundleId}x/${imgId}`;
-        }
-        if (Object.keys(extraBundle).length) await cachePut(`imgs/${bundleId}x`, extraBundle, 24 * 3600);
-        const merged = rank([...items, ...kept]).slice(0, 50);
-        await cachePut(cacheKey, { ...first, items: merged, source: `${found.source}+more` }, CACHE_SECONDS);
+      // Step 2 right away, while the slower provider and the chain searches are still running.
+      const [, later, fromChains] = await Promise.all([refineCall(1), found.later, chainJob.catch(() => [] as ShopItem[])]);
+
+      // Step 3: merge in everything new and drop junk the same way; the next check-in has it judged.
+      const current = (await cacheGet(cacheKey)) ?? first;
+      const have: ShopItem[] = current.items;
+      const extra: ShopItem[] = [];
+      for (const e of [...later, ...fromChains]) if (!have.some((i) => sameListing(i, e)) && !extra.some((i) => sameListing(i, e))) extra.push(e);
+      if (!extra.length) {
+        await cachePut(cacheKey, { ...current, more: false }, CACHE_SECONDS);
+        return;
       }
-      if (!items.length && !extra.length) return;
-      const params = new URLSearchParams({ key: cacheKey, q, gl });
-      const call = env.SELF ? env.SELF.fetch.bind(env.SELF) : fetch;
-      await call(`${origin}/refine?${params}`, { headers: { 'X-App-Key': env.APP_KEY ?? '' } }).catch(() => {});
+      const extraScores = await rerank(env, searchQ, extra.map((i) => i.title));
+      const top = Math.max(0, ...have.map((i) => i.score ?? 0));
+      const kept = extra.filter((e, idx) => {
+        e.score = extraScores ? Math.round(extraScores[idx] * 1000) / 1000 : undefined;
+        return !extraScores || (e.score ?? 0) >= Math.min(0.02, top * 0.1);
+      });
+      const extraBundle = bundleImages(kept, origin, `${bundleId}x`);
+      if (Object.keys(extraBundle).length) await cachePut(`imgs/${bundleId}x`, extraBundle, 24 * 3600);
+      const merged = [...have, ...kept.sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 60)];
+      await cachePut(cacheKey, { ...current, items: current.judged ? rank(merged, current.unit ?? undefined) : rank(merged), more: true, toJudge: true, source: `${current.source}+stores` }, CACHE_SECONDS);
     })(),
   );
 
   return json(first, 200, { 'X-Source': found.source });
 }
 
+const JUDGE_BATCH = 30;
+
+/**
+ * Phase 1: judge the first results (what the shopper meant, missing sizes) in one AI call.
+ * Phase 2: judge only the listings merged in since, told the meaning phase 1 settled on.
+ */
 async function refine(url: URL, env: Env) {
   const cacheKey = url.searchParams.get('key') ?? '';
   const q = url.searchParams.get('q') ?? '';
-  const gl = url.searchParams.get('gl') ?? 'ca';
+  const phase = url.searchParams.get('phase') === '2' ? 2 : 1;
   if (!cacheKey.startsWith('shopping/') || !q) return json({ ok: false }, 400);
-  const first = await cacheGet(cacheKey);
-  if (!first || first.judged) return json({ ok: true, skipped: true });
-  const items: ShopItem[] = first.items;
+  const current = await cacheGet(cacheKey);
+  if (!current) return json({ ok: true, skipped: true });
+  if (phase === 1 && current.judged) return json({ ok: true, skipped: true });
 
-  const candidates = [...items].sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 25);
-  const verdict = await judge(env, q, candidates.map((i) => i.title));
+  const items: ShopItem[] = current.items.map((i: ShopItem) => ({ ...i }));
+  const known = phase === 2 && current.judged && current.meaning ? { meaning: current.meaning as string, unit: (current.unit ?? undefined) as Unit | undefined } : undefined;
+  const todo = items.filter((i) => !i.match);
+  const candidates = [...todo].sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, JUDGE_BATCH);
+  // What the shopper meant, and likely sizes for listings that don't state one: two AI calls at once.
+  const unsized = candidates.filter((c) => !c.size);
+  const [verdict, guesses] = candidates.length
+    ? await Promise.all([judge(env, q, candidates.map((c) => c.title), known), estimateSizes(env, q, unsized.map((c) => c.title))])
+    : [null, null];
+
   if (!verdict) {
-    await cachePut(cacheKey, { ...first, judged: true }, CACHE_SECONDS);
+    // Nothing (more) to judge, or the AI is unavailable: keep what we have, mark as done.
+    const out = { ...current, items: items.map((i) => ({ ...i, match: i.match ?? (current.judged ? 'related' : undefined) })), judged: true, more: phase === 1 ? current.more : false, toJudge: false };
+    await cachePut(cacheKey, out, CACHE_SECONDS);
     return json({ ok: true, judged: false });
   }
-  const refined = items.map((i) => ({ ...i }));
-  const byTitle = new Map(candidates.map((c, idx) => [c.id + c.title, idx]));
-  for (const it of refined) {
-    const idx = byTitle.get(it.id + it.title);
-    it.match = idx == null ? 'related' : verdict.exact.has(idx) ? 'exact' : verdict.variant.has(idx) ? 'variant' : 'related';
-  }
-  // Listings that don't state their size can't be compared on value. Fill the size from the
-  // product catalog (Open Food Facts) when the matching product there has one…
-  if (verdict.isFood) await fillSizesFromCatalog(env, refined, gl.toUpperCase(), verdict.unit);
-  // …and otherwise let the AI estimate the standard pack / typical item weight (marked "est.").
-  const unsized = refined.filter((i) => !i.size && i.match === 'exact').slice(0, 20);
-  if (unsized.length && verdict.unit) {
-    const guesses = await estimateSizes(env, verdict.meaning, verdict.unit, unsized.map((i) => i.title));
-    guesses?.forEach((g, idx) => {
-      if (!g) return;
-      const it = unsized[idx];
-      let size = parseSize(g);
-      const n = parseFloat(g);
-      if (!size && verdict.unit === 'each' && n > 0) size = { amount: n, unit: 'each', label: `${n} ct` };
-      if (size && size.unit === verdict.unit) {
-        it.size = { ...size, estimated: true };
-        it.unitPrice = unitPriceOf(it.price, it.size);
-      }
-    });
-  }
+
+  const unit = verdict.unit;
+  candidates.forEach((c, idx) => {
+    c.match = verdict.exact.has(idx) ? 'exact' : verdict.variant.has(idx) ? 'variant' : 'related';
+  });
+  unsized.forEach((c, idx) => {
+    const guess = guesses?.[idx];
+    if (!guess || c.match === 'related' || !unit) return;
+    let size = parseSize(guess);
+    const n = parseFloat(guess);
+    if (!size && unit === 'each' && n > 0) size = { amount: n, unit: 'each', label: `${n} ct` };
+    if (size && size.unit === unit) {
+      c.size = { ...size, estimated: true };
+      c.unitPrice = unitPriceOf(c.price, c.size);
+    }
+  });
+  const byId = new Map(candidates.map((c) => [c.id + c.seller + c.title + c.price, c]));
+  const refined = items.map((i) => byId.get(i.id + i.seller + i.title + i.price) ?? { ...i, match: i.match ?? 'related' });
+
+  // Phase 1 may finish after phase 3 merged new listings in: keep those, phase 2 judges them.
+  const latest = phase === 1 ? await cacheGet(cacheKey) : null;
+  const added: ShopItem[] = latest ? latest.items.filter((l: ShopItem) => !refined.some((r) => sameListing(r, l))) : [];
+
   await cachePut(
     cacheKey,
-    { items: rank(refined, verdict.unit), judged: true, meaning: verdict.meaning, isFood: verdict.isFood, unit: verdict.unit ?? null, source: first.source },
+    {
+      items: rank([...refined, ...added], unit),
+      judged: true,
+      more: phase === 1 ? (latest?.more ?? current.more) : false,
+      meaning: verdict.meaning,
+      isFood: phase === 2 && current.isFood != null ? current.isFood : verdict.isFood,
+      unit: unit ?? null,
+      source: latest?.source ?? current.source,
+    },
     CACHE_SECONDS,
   );
   return json({ ok: true, judged: true });
-}
-
-/** Sizes for listings whose titles omit them ("Great Value White Eggs"), from the matching catalog product. */
-async function fillSizesFromCatalog(env: Env, items: ShopItem[], country: string, unit?: Unit) {
-  const missing = items.filter((i) => !i.size && i.match === 'exact').slice(0, 6); // ≤ 3 calls each; stays within limits
-  await Promise.all(
-    missing.map(async (item) => {
-      try {
-        const data: any = await Promise.race([offSearch(item.title, country, 1, 6), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000))]);
-        const hits: any[] = (data.hits ?? []).filter((h: any) => h.product_name && h.quantity);
-        if (!hits.length) return;
-        const names = hits.map((h) => [Array.isArray(h.brands) ? h.brands[0] : h.brands, h.product_name].filter(Boolean).join(' '));
-        const scores = await rerank(env, item.title, names);
-        if (!scores) return;
-        const best = scores.indexOf(Math.max(...scores));
-        if (scores[best] < 0.6) return; // only when the catalog product is clearly the same one
-        const q = String(hits[best].quantity);
-        let size = parseSize(q);
-        const n = parseFloat(q);
-        if (!size && unit === 'each' && n > 0 && /^\s*\d+(\s*(eggs?|pcs|pieces|ct|count|units?))?\s*$/i.test(q)) size = { amount: n, unit: 'each', label: `${n} ct` };
-        if (size && (!unit || size.unit === unit)) {
-          item.size = { ...size, label: `${size.label}*` }; // * = size from catalog, not the listing
-          item.unitPrice = unitPriceOf(item.price, item.size);
-        }
-      } catch {
-        // leave the size unknown
-      }
-    }),
-  );
 }
 
 // ---------- Open Food Facts (products + nutrition), cached at the edge ----------

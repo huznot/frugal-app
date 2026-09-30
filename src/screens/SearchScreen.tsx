@@ -10,7 +10,7 @@ import { formatPrice } from '../components/format';
 import { fonts, radius, useTheme } from '../theme';
 import { useApp } from '../state/AppState';
 import { searchProducts } from '../services/openFoodFacts';
-import { searchOffers, shoppingEnabled } from '../services/shopping';
+import { POLL_DELAYS, searchOffers, settled, shoppingEnabled } from '../services/shopping';
 import { deviceCountry } from '../services/location';
 import { formatDistance } from '../services/geo';
 import { Offer, ProductSummary } from '../services/types';
@@ -19,7 +19,6 @@ import { StackProps } from '../navigation';
 type Status = 'loading' | 'ready' | 'error' | 'more';
 
 // The server refines its ranking with AI a few seconds after the first answer.
-const REFINE_DELAYS = [2500, 3000, 4000, 5000, 6000, 8000]; // ~28 s: slow providers + AI refinement
 
 export default function SearchScreen({ navigation, route }: StackProps<'Search'>) {
   const { colors } = useTheme();
@@ -33,6 +32,7 @@ export default function SearchScreen({ navigation, route }: StackProps<'Search'>
   const [offers, setOffers] = useState<Offer[]>([]);
   const [meaning, setMeaning] = useState<string | undefined>();
   const [judged, setJudged] = useState(false);
+  const [more, setMore] = useState(false);
   const [isFood, setIsFood] = useState(true);
   const [offerStatus, setOfferStatus] = useState<Status>('loading');
   const [openOffer, setOpenOffer] = useState<Offer | null>(null);
@@ -78,11 +78,12 @@ export default function SearchScreen({ navigation, route }: StackProps<'Search'>
         setOffers(res.offers);
         setMeaning(res.meaning);
         setJudged(res.judged);
+        setMore(res.more);
         setIsFood(res.isFood !== false);
         setOfferStatus('ready');
-        // Pick up the AI-refined ranking (what you meant + best value) as soon as it's ready.
-        for (const delay of REFINE_DELAYS) {
-          if (res.judged) break;
+        // Pick up the AI ranking (what you meant, best value, cheapest), then the chains near you.
+        for (const delay of POLL_DELAYS) {
+          if (settled(res)) break;
           await new Promise((r) => setTimeout(r, delay));
           if (id !== offerRequestId.current) return;
           res = await searchOffers(q, state.location, radius, true);
@@ -90,6 +91,7 @@ export default function SearchScreen({ navigation, route }: StackProps<'Search'>
           setOffers(res.offers);
           setMeaning(res.meaning);
           setJudged(res.judged);
+          setMore(res.more);
           setIsFood(res.isFood !== false);
         }
       } catch {
@@ -248,11 +250,11 @@ export default function SearchScreen({ navigation, route }: StackProps<'Search'>
                 <Text variant="label" muted style={{ flex: 1 }} numberOfLines={1}>
                   {meaning ? `Showing: ${meaning}` : `${visibleOffers.length} prices`}
                 </Text>
-                {!judged && (
+                {(!judged || more) && (
                   <>
                     <ActivityIndicator size="small" color={colors.primary} />
                     <Text variant="small" muted style={{ fontSize: 11 }}>
-                      Finding best value…
+                      {!judged ? 'Finding best value…' : 'Checking stores near you…'}
                     </Text>
                   </>
                 )}

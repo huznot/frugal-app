@@ -10,7 +10,16 @@ import { Offer, Store, UserLocation } from './types';
 
 export const shoppingEnabled = !!API_BASE_URL;
 
-export type OfferResult = { offers: Offer[]; judged: boolean; meaning?: string; isFood?: boolean };
+export type OfferResult = { offers: Offer[]; judged: boolean; more: boolean; meaning?: string; isFood?: boolean };
+
+/**
+ * How long to wait between check-ins while the server finishes a search (~30 s in all): first the
+ * AI ranking (best value, cheapest) after a few seconds, then listings from the big chains near you.
+ */
+export const POLL_DELAYS = [2000, 2000, 2500, 2500, 3000, 3000, 3500, 4000, 4000, 5000];
+
+/** Nothing more is coming for this search. */
+export const settled = (r: OfferResult) => r.judged && !r.more;
 
 const cache = memoCache<OfferResult>(15 * 60 * 1000);
 
@@ -96,16 +105,25 @@ function arrange(list: Ranked[], judged: boolean, unit?: 'ml' | 'g' | 'each'): O
   // What you meant → where you can buy it (nearby stores first) → best value → cheapest.
   const sorted = [...cleaned].sort((a, b) => group(a) - group(b) || channel(a) - channel(b) || valueCmp(a, b) || a.price - b.price);
 
-  sorted.forEach((o) => (o.best = false));
+  sorted.forEach((o) => {
+    o.best = false;
+    o.cheapest = false;
+  });
   if (judged) {
     const meant = sorted.filter((o) => o.match === 'exact');
-    const nearbyValue = meant.filter((o) => o.nearbyStore && comparable(o));
-    const anyValue = meant.filter(comparable);
-    // Best value from stores near you when they have comparable options; otherwise from anywhere
-    // you can buy it. Estimated sizes count (the AI only estimates standard packs) and stay "est.".
-    // Nothing comparable per amount (e.g. a specific book)? Then simply the lowest price.
-    const best = nearbyValue[0] ?? anyValue[0] ?? (meant.length && !counts.size ? [...meant].sort((a, b) => a.price - b.price)[0] : undefined);
+    const valued = meant.filter(comparable);
+    // Best value (lowest price per amount) from stores near you when they have one, else anywhere.
+    // AI size estimates count (only standard packs are estimated) and stay marked "est.".
+    // Nothing comparable per amount (e.g. a specific book)? Then it's simply the lowest price.
+    const best =
+      valued.find((o) => o.nearbyStore) ??
+      valued[0] ??
+      (meant.length && !counts.size ? [...meant].sort((a, b) => a.price - b.price)[0] : undefined);
     if (best) best.best = true;
+    // Cheapest: the lowest price you'd pay for what you meant, near you when possible.
+    const byPrice = (list: Offer[]) => [...list].sort((a, b) => a.price - b.price)[0];
+    const cheapest = byPrice(meant.filter((o) => o.nearbyStore)) ?? byPrice(meant);
+    if (cheapest) cheapest.cheapest = true;
   }
   return sorted.map(({ unit: _u, ...o }) => o);
 }
@@ -113,19 +131,24 @@ function arrange(list: Ranked[], judged: boolean, unit?: 'ml' | 'g' | 'each'): O
 export async function searchOffers(query: string, location: UserLocation | undefined, radiusKm = 25, fresh = false): Promise<OfferResult> {
   if (!shoppingEnabled) throw new Error('shopping-disabled');
   const q = query.trim();
-  if (!q) return { offers: [], judged: true };
+  if (!q) return { offers: [], judged: true, more: false };
   const country = location?.countryCode ?? 'CA';
   const place = location ? [location.label, COUNTRY_NAMES[country]].filter(Boolean).join(', ') : '';
   const key = `${q.toLowerCase()}|${place}`;
   const cached = cache.get(key);
-  if (cached && (cached.judged || !fresh)) return cached;
+  if (cached && (settled(cached) || !fresh)) return cached;
 
   const params = new URLSearchParams({ q, gl: country.toLowerCase() });
   if (place && location?.label !== 'Current location') params.set('location', place);
+  // Rounded to ~1 km: enough to know which grocery chains are near you.
+  if (location) {
+    params.set('lat', location.lat.toFixed(2));
+    params.set('lon', location.lon.toFixed(2));
+  }
 
   // Nearby stores are usually already cached (prefetched at startup), so this adds no delay.
   const [data, stores] = await Promise.all([
-    fetchJson<{ items: any[]; judged?: boolean; meaning?: string; isFood?: boolean | null; unit?: 'ml' | 'g' | 'each' | null }>(`${API_BASE_URL}/shopping?${params}`, { headers: { 'X-App-Key': API_APP_KEY }, timeoutMs: 15000 }),
+    fetchJson<{ items: any[]; judged?: boolean; more?: boolean; meaning?: string; isFood?: boolean | null; unit?: 'ml' | 'g' | 'each' | null }>(`${API_BASE_URL}/shopping?${params}`, { headers: { 'X-App-Key': API_APP_KEY }, timeoutMs: 20000 }),
     location ? getNearbyStores(location.lat, location.lon, radiusKm).catch(() => [] as Store[]) : Promise.resolve([] as Store[]),
   ]);
 
@@ -176,6 +199,7 @@ export async function searchOffers(query: string, location: UserLocation | undef
   const result: OfferResult = {
     offers: arrange(offers, judged, data.unit ?? undefined),
     judged,
+    more: data.more === true,
     meaning: data.meaning ?? undefined,
     isFood: data.isFood ?? undefined,
   };
