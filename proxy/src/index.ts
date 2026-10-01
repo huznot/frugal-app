@@ -15,7 +15,7 @@
  */
 
 import { extractResults, normalize, parseSize, rank, ShopItem, unitPriceOf, Unit } from './shopping';
-import { chainShortName, estimateSizes, identifyWithWorkersAi, judge, rerank, rewriteQuery, Identified } from './ai';
+import { chainShortName, estimateSizes, identifyWithWorkersAi, judge, readSizesFromPhotos, rerank, rewriteQuery, Identified } from './ai';
 import brandIndex from '../../src/services/brandIndex.json';
 
 interface Env {
@@ -155,7 +155,7 @@ async function canonicalLocation(location: string, gl: string, ctx: ExecutionCon
 const DOMAINS: Record<string, string> = { ca: 'google.ca', us: 'google.com', gb: 'google.co.uk', au: 'google.com.au', ie: 'google.ie', nz: 'google.co.nz', in: 'google.co.in' };
 const CACHE_SECONDS = 6 * 3600; // prices barely move within hours; caching saves quota and makes repeat searches instant
 // Bump whenever ranking/AI logic changes so users never see results ranked by old logic.
-const RANK_VERSION = 19;
+const RANK_VERSION = 26;
 
 type Query = { q: string; gl: string; location: string };
 type Raw = { r: any; nearbyGroup: boolean }[];
@@ -257,7 +257,13 @@ function chainOf(name: string, country: string): { id: string; name: string } | 
   return null;
 }
 
-const CHAIN_COUNT = 3;
+const CHAIN_COUNT = 5;
+// Where most people actually shop (Wikidata ids). Always searched first when there's one near the
+// shopper; the remaining slots go to whichever chains have the most branches nearby.
+const MAJOR_CHAINS: Record<string, string[]> = {
+  CA: ['Q483551' /* Walmart */, 'Q7300856' /* Real Canadian Superstore */, 'Q715583' /* Costco */],
+  US: ['Q483551' /* Walmart */, 'Q715583' /* Costco */, 'Q153417' /* Kroger */, 'Q1046951' /* Target */],
+};
 const CHAIN_RADIUS_KM = 15;
 const CHAIN_DEADLINE_MS = 14000;
 
@@ -269,7 +275,7 @@ async function nearbyChains(env: Env, lat: number, lon: number, gl: string, ctx:
   if (!env.STORES_DB || !isFinite(lat) || !isFinite(lon)) return [];
   const tLat = Math.round(lat * 10) / 10;
   const tLon = Math.round(lon * 10) / 10;
-  const key = `chains/v1/${gl}/${tLat}/${tLon}`;
+  const key = `chains/v2/${gl}/${tLat}/${tLon}`;
   const hit = await cacheGet(key);
   if (hit) return hit.chains;
 
@@ -292,9 +298,10 @@ async function nearbyChains(env: Env, lat: number, lon: number, gl: string, ctx:
     t.nearest = Math.min(t.nearest, km);
     tally.set(chain.id, t);
   }
+  const major = (id: string) => (MAJOR_CHAINS[country] ?? []).includes(id);
   const chains = [...tally.values()]
-    .filter((c) => c.count >= 2) // a real presence in the area, not a one-off
-    .sort((a, b) => b.count - a.count || a.nearest - b.nearest)
+    .filter((c) => major(c.id) || c.count >= 2) // a real presence in the area, not a one-off
+    .sort((a, b) => Number(major(b.id)) - Number(major(a.id)) || b.count - a.count || a.nearest - b.nearest)
     .slice(0, CHAIN_COUNT)
     .map(({ id, name }) => ({ id, name }));
   ctx.waitUntil(cachePut(key, { chains }, 7 * 86400));
@@ -417,7 +424,7 @@ async function shopping(url: URL, env: Env, ctx: ExecutionContext) {
   // "fresh apples produce", not iPhones). Cached for 30 days per search term.
   const [searchQ, chains] = await Promise.all([groceryQuery(env, q, ctx), nearbyChains(env, lat, lon, gl, ctx).catch(() => [])]);
   const started = Date.now();
-  const budget = { serp: 1 };
+  const budget = { serp: 2 };
   // Chain searches start now, in parallel with the general one; they're merged in step 3.
   const chainJob =
     env.BRIGHTDATA_API_KEY && chains.length
@@ -481,7 +488,42 @@ async function shopping(url: URL, env: Env, ctx: ExecutionContext) {
   return json(first, 200, { 'X-Source': found.source });
 }
 
+/**
+ * Each listing's product photo as a data URL, for reading the size off the package. Bright Data
+ * photos come from this search's image bundle (no download); others are fetched (capped).
+ */
+async function photosFor(items: ShopItem[]): Promise<(string | undefined)[]> {
+  const refs = items.map((i) => i.thumbnail?.match(/\/img\/([^/]+)\/([^/?#]+)$/));
+  const bundles = new Map<string, any>();
+  await Promise.all([...new Set(refs.filter(Boolean).map((m) => m![1]))].map(async (b) => bundles.set(b, await cacheGet(`imgs/${b}`))));
+  let fetched = 0;
+  return Promise.all(
+    items.map(async (it, i) => {
+      const m = refs[i];
+      if (m) {
+        const e = bundles.get(m[1])?.[m[2]];
+        return e ? `data:${e[0]};base64,${e[1]}` : undefined;
+      }
+      if (!it.thumbnail || !/^https:/.test(it.thumbnail) || fetched >= MAX_PHOTO_FETCHES) return undefined;
+      fetched++;
+      try {
+        const res = await withDeadline(fetch(it.thumbnail), 4000);
+        const buf = new Uint8Array(await res.arrayBuffer());
+        if (!res.ok || buf.length > 250000) return undefined;
+        let bin = '';
+        for (let j = 0; j < buf.length; j++) bin += String.fromCharCode(buf[j]);
+        return `data:${res.headers.get('content-type') ?? 'image/jpeg'};base64,${btoa(bin)}`;
+      } catch {
+        return undefined;
+      }
+    }),
+  );
+}
+
+const MAX_PHOTO_FETCHES = 12;
+
 const JUDGE_BATCH = 30;
+const MAX_BATCHES = 4;
 
 /**
  * Phase 1: judge the first results (what the shopper meant, missing sizes) in one AI call.
@@ -497,14 +539,50 @@ async function refine(url: URL, env: Env) {
   if (phase === 1 && current.judged) return json({ ok: true, skipped: true });
 
   const items: ShopItem[] = current.items.map((i: ShopItem) => ({ ...i }));
-  const known = phase === 2 && current.judged && current.meaning ? { meaning: current.meaning as string, unit: (current.unit ?? undefined) as Unit | undefined } : undefined;
+  const judgedAs = (m: string) => items.filter((i) => i.match === m).slice(0, 8).map((i) => i.title);
+  const known =
+    phase === 2 && current.judged && current.meaning
+      ? { meaning: current.meaning as string, unit: (current.unit ?? undefined) as Unit | undefined, exact: judgedAs('exact'), variant: judgedAs('variant') }
+      : undefined;
   const todo = items.filter((i) => !i.match);
-  const candidates = [...todo].sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, JUDGE_BATCH);
-  // What the shopper meant, and likely sizes for listings that don't state one: two AI calls at once.
+  // Every listing gets judged (a store's best deal can be anywhere in the list), in batches that run
+  // at the same time. The first batch settles what the shopper meant; the others are told, so they agree.
+  const candidates = [...todo].sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, JUDGE_BATCH * MAX_BATCHES);
+  const batches: ShopItem[][] = [];
+  for (let i = 0; i < candidates.length; i += JUDGE_BATCH) batches.push(candidates.slice(i, i + JUDGE_BATCH));
   const unsized = candidates.filter((c) => !c.size);
-  const [verdict, guesses] = candidates.length
-    ? await Promise.all([judge(env, q, candidates.map((c) => c.title), known), estimateSizes(env, q, unsized.map((c) => c.title))])
-    : [null, null];
+  const sizeBatches: ShopItem[][] = [];
+  for (let i = 0; i < unsized.length; i += JUDGE_BATCH) sizeBatches.push(unsized.slice(i, i + JUDGE_BATCH));
+
+  // Stated sizes (not earlier estimates) as price references, spread across sizes.
+  const references = items
+    .filter((i) => i.size && !i.size.estimated)
+    .sort((a, b) => a.size!.amount - b.size!.amount)
+    .filter((_, i, all) => all.length <= 14 || i % Math.ceil(all.length / 14) === 0)
+    .map((i) => ({ title: i.title, price: i.price, size: i.size!.label }));
+  const sizeJob = Promise.all(sizeBatches.map((b) => estimateSizes(env, q, b.map((c) => ({ title: c.title, price: c.price })), references)));
+  // The size printed on the package, read from each listing's photo: the real size, not a guess.
+  const photoJob = photosFor(unsized).then((imgs) => {
+    const withImg = unsized.map((c, i) => ({ c, image: imgs[i] })).filter((x): x is { c: ShopItem; image: string } => !!x.image);
+    return readSizesFromPhotos(env, withImg.map((x) => ({ title: x.c.title, image: x.image }))).then(
+      (sizes) => new Map(withImg.map((x, i) => [x.c, sizes[i]] as const)),
+    );
+  });
+  const first = batches.length ? await judge(env, q, batches[0].map((c) => c.title), known) : null;
+  const rest = first
+    ? await Promise.all(
+        batches.slice(1).map((b) =>
+          judge(env, q, b.map((c) => c.title), {
+            meaning: first.meaning,
+            unit: first.unit,
+            exact: batches[0].filter((_, i) => first.exact.has(i)).slice(0, 8).map((c) => c.title),
+            variant: batches[0].filter((_, i) => first.variant.has(i)).slice(0, 8).map((c) => c.title),
+          }),
+        ),
+      )
+    : [];
+  const verdict = first;
+  const guesses = (await sizeJob).flatMap((g, i) => g ?? sizeBatches[i].map(() => null));
 
   if (!verdict) {
     // Nothing (more) to judge, or the AI is unavailable: keep what we have, mark as done.
@@ -514,19 +592,29 @@ async function refine(url: URL, env: Env) {
   }
 
   const unit = verdict.unit;
-  candidates.forEach((c, idx) => {
-    c.match = verdict.exact.has(idx) ? 'exact' : verdict.variant.has(idx) ? 'variant' : 'related';
+  batches.forEach((batch, b) => {
+    const v = b === 0 ? verdict : rest[b - 1];
+    batch.forEach((c, idx) => {
+      c.match = !v ? 'related' : v.exact.has(idx) ? 'exact' : v.variant.has(idx) ? 'variant' : 'related';
+    });
   });
+  const fromPhotos = await photoJob.catch(() => new Map<ShopItem, string | null>());
+  const toSize = (text: string | null | undefined) => {
+    if (!text || !unit) return undefined;
+    let size = parseSize(text);
+    const n = parseFloat(text);
+    if (!size && unit === 'each' && n > 0) size = { amount: n, unit: 'each' as const, label: `${n} ct` };
+    return size && size.unit === unit ? size : undefined;
+  };
   unsized.forEach((c, idx) => {
-    const guess = guesses?.[idx];
-    if (!guess || c.match === 'related' || !unit) return;
-    let size = parseSize(guess);
-    const n = parseFloat(guess);
-    if (!size && unit === 'each' && n > 0) size = { amount: n, unit: 'each', label: `${n} ct` };
-    if (size && size.unit === unit) {
-      c.size = { ...size, estimated: true };
-      c.unitPrice = unitPriceOf(c.price, c.size);
-    }
+    if (c.match === 'related') return;
+    // Printed on the package beats the AI's estimate (which stays marked "est.").
+    const printed = toSize(fromPhotos.get(c));
+    const guessed = printed ? undefined : toSize(guesses?.[idx]);
+    const size = printed ?? guessed;
+    if (!size) return;
+    c.size = { ...size, estimated: !printed };
+    c.unitPrice = unitPriceOf(c.price, c.size);
   });
   const byId = new Map(candidates.map((c) => [c.id + c.seller + c.title + c.price, c]));
   const refined = items.map((i) => byId.get(i.id + i.seller + i.title + i.price) ?? { ...i, match: i.match ?? 'related' });

@@ -10,6 +10,12 @@ const RERANKER = '@cf/baai/bge-reranker-base';
 const JUDGE = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 const VISION = '@cf/meta/llama-4-scout-17b-16e-instruct';
 
+/** The reply text or object, whichever shape the model returns (Llama, OpenAI-style or Responses-style). */
+const replyOf = (out: any) =>
+  out?.response ??
+  out?.choices?.[0]?.message?.content ??
+  out?.output?.find?.((o: any) => o.type === 'message')?.content?.find?.((c: any) => c.type === 'output_text')?.text;
+
 const withTimeout = <T>(p: Promise<T>, ms: number) =>
   Promise.race([p, new Promise<null>((resolve) => setTimeout(() => resolve(null), ms))]);
 
@@ -35,7 +41,8 @@ const JUDGE_PROMPT =
   'specific — a brand, flavour or size — that is what they mean). Write that meaning as a concrete description of ' +
   'the product (its kind and usual form), not just the words typed. Then, from the numbered store listings, return ' +
   'the numbers of listings that ARE that product as "exact" (ordinary differences such as brand, pack size, grade, ' +
-  'colour, fat level or organic still count as that product), and listings of the same product ' +
+  'colour, fat level or organic still count as that product; but anything a store would shelve under its own name, ' +
+  'such as a different flavour, a different source animal or plant, or a differently made product, is not), and listings of the same product ' +
   'family but a different kind (another flavour, plant-based, lactose-free, a different form or format, a different ' +
   'edition, or used / refurbished / collectible / first-edition copies, or bulk wholesale cases meant for businesses) as "variant". ' +
   'Leave out anything else. Also give the unit its value is normally compared in, and the product category. ' +
@@ -47,12 +54,24 @@ const JUDGE_PROMPT =
  * Which listings are the product the shopper meant (~3 s), run after results are sent. Pass
  * `known` to judge more listings for a search that was already understood, so both batches agree.
  */
-export async function judge(env: AiEnv, query: string, titles: string[], known?: { meaning: string; unit?: Unit }): Promise<Judgement | null> {
+export async function judge(
+  env: AiEnv,
+  query: string,
+  titles: string[],
+  known?: { meaning: string; unit?: Unit; exact?: string[]; variant?: string[] },
+  model = JUDGE,
+): Promise<Judgement | null> {
   if (!env.AI || !titles.length) return null;
   try {
-    const context = known ? `\nThe shopper means: ${known.meaning}${known.unit ? ` (compared per ${known.unit})` : ''}.` : '';
+    // Earlier decisions for this search keep a later batch consistent with the first one.
+    const examples = (label: string, list?: string[]) => (list?.length ? `\n${label}: ${list.join('; ')}` : '');
+    const context = known
+      ? `\nThe shopper means: ${known.meaning}${known.unit ? ` (compared per ${known.unit})` : ''}.` +
+        examples('Already judged exact', known.exact) +
+        examples('Already judged variant', known.variant)
+      : '';
     const out: any = await withTimeout(
-      env.AI.run(JUDGE, {
+      env.AI.run(model, {
         messages: [
           { role: 'system', content: JUDGE_PROMPT },
           { role: 'user', content: `Search: "${query}"${context}\n${titles.map((t, i) => `${i}: ${t}`).join('\n')}` },
@@ -63,8 +82,8 @@ export async function judge(env: AiEnv, query: string, titles: string[], known?:
       }),
       12000,
     );
-    let r = out?.response;
-    if (typeof r === 'string') r = JSON.parse(r);
+    let r = replyOf(out);
+    if (typeof r === 'string') r = JSON.parse(r.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
     if (!r || !Array.isArray(r.exact)) return null;
     const ints = (a: unknown) => new Set((Array.isArray(a) ? a : []).filter((n): n is number => Number.isInteger(n) && n >= 0 && n < titles.length));
     return {
@@ -80,23 +99,40 @@ export async function judge(env: AiEnv, query: string, titles: string[], known?:
 }
 
 const SIZE_PROMPT =
-  'Each numbered store listing below is missing its package size. For each one that is normally sold in one standard ' +
-  'size, give that size (e.g. a carton of eggs in Canada is 12 eggs; one medium apple weighs about 180 g, one banana ' +
-  'about 120 g; a single item sold "each" is 1). If the product is commonly sold in several different sizes and the ' +
-  'title gives no hint which, leave it out rather than guess. Respond as JSON: {"sizes": {"<number>": "<size>"}}';
+  "Each numbered store listing below (title and shelf price, from a store in the shopper's country) is missing its " +
+  'package size. Work out the size it is sold in, in this order: ' +
+  '1) a pack word in the title decides it: a format with one standard size in that country (a milk "jug", a "bag" of ' +
+  'milk, a "club pack" / "CP", "family size", a "dozen") is that standard size, whatever the price; ' +
+  '2) your knowledge of that exact product; ' +
+  '3) the price, compared with the reference listings that state their size: pick the size whose price per amount ' +
+  'is in line with them (a price close to a reference 1 L carton is a 1 L carton, not a 4 L jug); ' +
+  '4) products that only come in one size (a carton of eggs is 12; one banana about 120 g, one apple about 180 g; an ' +
+  'item sold "each" is 1). Leave it out only if you have no idea what the product is. ' +
+  'Respond as JSON: {"sizes": {"<number>": "<size like 4 L, 2.27 kg, 12 eggs>"}}';
 
 /** Likely pack size for listings whose titles don't state one (marked "est." in the app). Runs alongside judge(). */
-export async function estimateSizes(env: AiEnv, query: string, titles: string[]): Promise<(string | null)[] | null> {
-  if (!env.AI || !titles.length) return null;
+export async function estimateSizes(
+  env: AiEnv,
+  query: string,
+  listings: { title: string; price: number }[],
+  references: { title: string; price: number; size: string }[] = [],
+): Promise<(string | null)[] | null> {
+  if (!env.AI || !listings.length) return null;
+  const titles = listings.map((l) => l.title);
+  // Listings from the same search that state their size show what each size really costs around
+  // here, so a price can be matched to the right pack (a $3 carton isn't a 4 L jug).
+  const refs = references.length
+    ? `\nFor reference, listings in this search that state their size:\n${references.map((r) => `- ${r.title}: ${r.size} for $${r.price.toFixed(2)}`).join('\n')}\n\nListings to size:`
+    : '';
   try {
     const out: any = await withTimeout(
       env.AI.run(JUDGE, {
         messages: [
           { role: 'system', content: SIZE_PROMPT },
-          { role: 'user', content: `Search: "${query}"\n${titles.map((t, i) => `${i}: ${t}`).join('\n')}` },
+          { role: 'user', content: `Search: "${query}"${refs}\n${listings.map((l, i) => `${i}: ${l.title} ($${l.price.toFixed(2)})`).join('\n')}` },
         ],
         response_format: { type: 'json_object' },
-        max_tokens: 400,
+        max_tokens: 500,
         temperature: 0,
       }),
       12000,
@@ -216,4 +252,47 @@ export async function chainShortName(env: AiEnv, chain: string): Promise<string 
   } catch {
     return null;
   }
+}
+
+const PHOTO_SIZE_PROMPT =
+  'Below are numbered store listings, each with its product photo. For each, read the net package size printed on ' +
+  'the product (e.g. 4 L, 2 L, 946 mL, 2.27 kg, 400 g, 12 eggs). For a multipack give the total. Use null when the size ' +
+  'is not readable in the photo. Respond as JSON: {"sizes": {"<number>": "<size>" | null}}';
+
+const PHOTOS_PER_CALL = 6;
+
+/**
+ * Package sizes read off the product photos (the size printed on the label), for listings whose
+ * titles don't state one. ~0.7 s per call of 6 photos; calls run in parallel.
+ */
+export async function readSizesFromPhotos(env: AiEnv, listings: { title: string; image: string }[]): Promise<(string | null)[]> {
+  const out: (string | null)[] = listings.map(() => null);
+  if (!env.AI || !listings.length) return out;
+  const groups: number[][] = [];
+  for (let i = 0; i < listings.length; i += PHOTOS_PER_CALL) groups.push(listings.slice(i, i + PHOTOS_PER_CALL).map((_, j) => i + j));
+  await Promise.all(
+    groups.map(async (idx) => {
+      try {
+        const content: any[] = [{ type: 'text', text: PHOTO_SIZE_PROMPT }];
+        idx.forEach((g, n) => {
+          content.push({ type: 'text', text: `${n}: ${listings[g].title}` });
+          content.push({ type: 'image_url', image_url: { url: listings[g].image } });
+        });
+        const res: any = await withTimeout(
+          env.AI!.run(VISION, { messages: [{ role: 'user', content }], response_format: { type: 'json_object' }, max_tokens: 200, temperature: 0 }),
+          10000,
+        );
+        let r = replyOf(res);
+        if (typeof r === 'string') r = JSON.parse(r.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
+        const sizes = r?.sizes ?? {};
+        idx.forEach((g, n) => {
+          const v = sizes[n] ?? sizes[String(n)];
+          if (typeof v === 'string' && v.trim() && !/null|unknown|n\/a/i.test(v)) out[g] = v.trim();
+        });
+      } catch {
+        // leave these unread
+      }
+    }),
+  );
+  return out;
 }

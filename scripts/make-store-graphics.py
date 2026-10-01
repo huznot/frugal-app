@@ -32,12 +32,17 @@ font_dir = os.path.join(root, "node_modules", "@expo-google-fonts")
 title = ImageFont.truetype(os.path.join(font_dir, "fredoka", "700Bold", "Fredoka_700Bold.ttf"), 120)
 tag = ImageFont.truetype(os.path.join(font_dir, "poppins", "500Medium", "Poppins_500Medium.ttf"), 34)
 
-# the logo keeps its own rounded corners; a white ring sits just outside them
+# the logo sits on a soft darker shadow so it lifts off the red background
+from PIL import ImageFilter
 logo = square.resize((300, 300), Image.LANCZOS)
-plate = Image.new("RGBA", (324, 324), (0, 0, 0, 0))
-ImageDraw.Draw(plate).rounded_rectangle((0, 0, 323, 323), radius=78, fill=(255, 255, 255, 255))
-fg.paste(plate, (68, 88), plate)
+shadow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+mask = logo.split()[3]
+shadow.paste((150, 20, 20, 110), (84, 112), mask)
+shadow = shadow.filter(ImageFilter.GaussianBlur(18))
+fg = Image.alpha_composite(fg.convert("RGBA"), shadow)
 fg.paste(logo, (80, 100), logo)
+fg = fg.convert("RGB")
+draw = ImageDraw.Draw(fg)
 
 draw.text((440, 120), "Frugal", font=title, fill=(255, 255, 255))
 draw.text((446, 270), "Cheapest groceries near you", font=tag, fill=(255, 255, 255))
