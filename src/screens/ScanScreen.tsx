@@ -39,11 +39,13 @@ export default function ScanScreen() {
   const [manual, setManual] = useState('');
   const locked = useRef(false);
   const camera = useRef<CameraView>(null);
+  const cameraReady = useRef(false);
   const sweep = useRef(new Animated.Value(0)).current;
 
   // Re-arm every time the tab comes back into focus.
   useEffect(() => {
     if (focused) {
+      cameraReady.current = false;
       locked.current = false;
       setBusy(false);
       setFrozen(null);
@@ -95,8 +97,15 @@ export default function ScanScreen() {
         // Low quality + a base64 copy: the photo is shrunk again before upload, and the base64
         // copy is the fallback if shrinking fails on this device.
         photo = await camera.current.takePictureAsync({ quality: 0.3, base64: true, shutterSound: false });
-      } catch (e: any) {
-        throw new PhotoError('capture', e?.message ?? 'camera error');
+      } catch (first: any) {
+        // Some Android phones refuse a capture that arrives before the camera has settled, or run
+        // out of memory encoding a full-size base64 copy. Wait a beat and try once more without it.
+        try {
+          await new Promise((r) => setTimeout(r, cameraReady.current ? 300 : 1200));
+          photo = await camera.current?.takePictureAsync({ quality: 0.3, shutterSound: false });
+        } catch (e: any) {
+          throw new PhotoError('capture', e?.message ?? first?.message ?? 'camera error');
+        }
       }
       if (!photo?.uri) throw new PhotoError('capture', 'no photo');
       setFrozen(photo.uri);
@@ -197,6 +206,8 @@ export default function ScanScreen() {
           enableTorch={torch}
           barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e'] }}
           onBarcodeScanned={busy ? undefined : onBarcode}
+          onCameraReady={() => (cameraReady.current = true)}
+          onMountError={(e) => setMessage(`Camera couldn't start (${e.message}).`)}
         />
       )}
       {frozen && <Image source={{ uri: frozen }} style={StyleSheet.absoluteFill} contentFit="cover" />}
@@ -220,7 +231,7 @@ export default function ScanScreen() {
 
       {/* Viewfinder */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 60 }}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 140 }}>
           <View style={{ width: FRAME.w, height: FRAME.h }}>
             {(['tl', 'tr', 'bl', 'br'] as const).map((c) => (
               <View
@@ -259,18 +270,26 @@ export default function ScanScreen() {
               />
             )}
           </View>
-          <View style={{ marginTop: 22, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.pill }}>
-            <Text variant="bodyStrong" color="#FFFFFF" center>
-              {busy
-                ? 'Identifying…'
-                : message ?? (photoMode ? 'Snap the front of the product — barcodes are read automatically' : 'Line up the barcode — it scans automatically')}
-            </Text>
-          </View>
         </View>
       </View>
 
-      {/* Bottom actions (above the floating tab bar) */}
+      {/* Bottom actions (above the floating tab bar). The hint lives here too, so an error message
+          can never end up hidden behind the buttons on a short screen. */}
       <View style={{ position: 'absolute', left: 24, right: 24, bottom: insets.bottom + 110, alignItems: 'center', gap: 14 }}>
+        <View
+          style={{
+            backgroundColor: message ? 'rgba(0,0,0,0.82)' : 'rgba(0,0,0,0.6)',
+            paddingHorizontal: 14,
+            paddingVertical: 8,
+            borderRadius: message ? radius.md : radius.pill,
+          }}
+        >
+          <Text variant="bodyStrong" color="#FFFFFF" center>
+            {busy
+              ? 'Identifying…'
+              : message ?? (photoMode ? 'Snap the front of the product, barcodes are read automatically' : 'Line up the barcode, it scans automatically')}
+          </Text>
+        </View>
         {photoMode &&
           (busy ? (
             <ActivityIndicator size="large" color={colors.sun} />

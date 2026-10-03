@@ -12,6 +12,10 @@ const config: ExpoConfig = {
   owner: 'huznot',
   version: '2.0.0',
   orientation: 'portrait',
+  // Over-the-air updates (`eas update`). An update only reaches builds with the same version, so
+  // bump `version` whenever a change needs a new store build (new native package, permission, etc).
+  runtimeVersion: { policy: 'appVersion' },
+  updates: { url: 'https://u.expo.dev/67d50bec-de98-4882-aef0-93c97df50baa' },
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic', // app defaults to light; users can pick Dark/Auto in Settings
   scheme: 'frugal',

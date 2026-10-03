@@ -47,10 +47,20 @@ export async function identifyPhoto(uri: string, cameraBase64?: string): Promise
   const image = (await shrink(uri)) ?? cameraBase64;
   if (!image) throw new PhotoError('resize', 'could not read the photo');
   let res: Response;
+  // A stalled upload would otherwise leave the spinner up forever.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 25000);
   try {
-    res = await fetch(`${API_BASE_URL}/identify`, { method: 'POST', headers, body: JSON.stringify({ image, mimeType: 'image/jpeg' }) });
+    res = await fetch(`${API_BASE_URL}/identify`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ image, mimeType: 'image/jpeg' }),
+      signal: controller.signal,
+    });
   } catch (e: any) {
-    throw new PhotoError('upload', e?.message ?? 'network error');
+    throw new PhotoError('upload', controller.signal.aborted ? 'timed out' : e?.message ?? 'network error');
+  } finally {
+    clearTimeout(timer);
   }
   if (!res.ok) throw new PhotoError('server', `HTTP ${res.status} ${(await res.text().catch(() => '')).slice(0, 80)}`);
   const data = (await res.json()) as { product: Identified | null };

@@ -30,6 +30,7 @@ html,body,#map{margin:0;height:100%;width:100%;background:${dark ? '#1c1c1c' : '
 .m.sel{transform:scale(1.3);box-shadow:0 0 0 3px #FF5050,0 4px 12px rgba(0,0,0,.3)}
 .m img{width:84%;height:84%;object-fit:contain}
 .m .mono{width:100%;height:100%;border-radius:9px;display:flex;align-items:center;justify-content:center;font:700 12px system-ui}
+.maplibregl-marker:has(.sel){z-index:2}
 .you{width:18px;height:18px;border-radius:50%;background:#3F7BFF;border:3px solid #fff;box-shadow:0 0 0 8px rgba(63,123,255,.22)}
 .maplibregl-ctrl-attrib{font-size:10px}
 </style></head><body><div id="map"></div><script>
@@ -38,15 +39,18 @@ const map=new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.o
 let markers={},you=null,selected=null,moving=false;
 map.on('click',()=>post({type:'press'}));
 map.on('moveend',(e)=>{if(e.originalEvent){const c=map.getCenter();post({type:'moved',lat:c.lat,lon:c.lng});}});
-function el(s){const d=document.createElement('div');d.className='m';
+// MapLibre positions a marker by setting transform on the element it's given, so the styled badge
+// (with its scale transition) sits inside a plain wrapper. Otherwise every pan/zoom gets animated
+// and the markers lag and wobble behind the map.
+function el(s){const w=document.createElement('div');const d=document.createElement('div');d.className='m';w.appendChild(d);
   if(s.logo){const i=document.createElement('img');i.src=s.logo;i.onerror=()=>{d.innerHTML='<div class="mono" style="background:'+s.bg+';color:'+s.fg+'">'+s.mono+'</div>'};d.appendChild(i);}
   else d.innerHTML='<div class="mono" style="background:'+s.bg+';color:'+s.fg+'">'+s.mono+'</div>';
-  d.addEventListener('click',(e)=>{e.stopPropagation();post({type:'select',id:s.id});});return d;}
+  w.addEventListener('click',(e)=>{e.stopPropagation();post({type:'select',id:s.id});});return w;}
 window.frugal={
   setStores(list){const keep={};for(const s of list){const k=s.id+'|'+(s.logo||'');if(markers[k]){keep[k]=markers[k];delete markers[k];continue;}
     keep[k]=new maplibregl.Marker({element:el(s)}).setLngLat([s.lon,s.lat]).addTo(map);keep[k]._id=s.id;}
     for(const k in markers)markers[k].remove();markers=keep;this.setSelected(selected);},
-  setSelected(id){selected=id;for(const k in markers){markers[k].getElement().classList.toggle('sel',markers[k]._id===id);}},
+  setSelected(id){selected=id;for(const k in markers){markers[k].getElement().firstChild.classList.toggle('sel',markers[k]._id===id);}},
   setUser(lat,lon){if(!you){const d=document.createElement('div');d.className='you';you=new maplibregl.Marker({element:d}).setLngLat([lon,lat]).addTo(map);}else you.setLngLat([lon,lat]);},
   flyTo(lat,lon){map.flyTo({center:[lon,lat],zoom:12.5,duration:500});}
 };

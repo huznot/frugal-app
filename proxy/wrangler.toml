@@ -20,6 +20,8 @@ simple = { limit = 60, period = 60 }
 #   BRIGHTDATA_API_KEY    - Bright Data API key (store prices; recommended, 5k free requests/month)
 #   BRIGHTDATA_ZONE       - optional, your SERP API zone name if not "serp_api1"
 #   SERPAPI_KEY           - serpapi.com key (backup provider, used if Bright Data fails)
+#   SERPAPI_KEY_2         - optional second serpapi.com key, used once SERPAPI_KEY runs out
+#   SERPAPI_KEY_3         - optional third key, used once SERPAPI_KEY_2 runs out
 #   SEARCHAPI_KEY         - searchapi.io key (optional third provider)
 #   GEMINI_API_KEY        - Google AI Studio key (use a paid-tier project for EU/UK users)
 #   APP_KEY               - any random string; must match EXPO_PUBLIC_API_APP_KEY in the app

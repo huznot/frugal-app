@@ -23,6 +23,8 @@ interface Env {
   BRIGHTDATA_ZONE?: string; // name of your SERP API zone in the Bright Data dashboard (default "serp_api1")
   SEARCHAPI_KEY?: string;
   SERPAPI_KEY?: string;
+  SERPAPI_KEY_2?: string; // backups, used in order once the one before runs out of searches
+  SERPAPI_KEY_3?: string;
   GEMINI_API_KEY?: string;
   GEMINI_MODEL: string;
   APP_KEY?: string;
@@ -181,8 +183,36 @@ async function fromSerpStyle({ q, gl, location }: Query, host: 'serpapi' | 'sear
   if (location) params.set('location', location);
   const endpoint = host === 'serpapi' ? `https://serpapi.com/search.json?${params}` : `https://www.searchapi.io/api/v1/search?${params}`;
   const res = await fetch(endpoint);
-  if (!res.ok) throw new Error(`${host} ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    // Out of searches (429) or a dead key (401/403): the caller moves on to the next key.
+    const spent = res.status === 401 || res.status === 403 || res.status === 429 || /run out of searches|plan limit/i.test(body);
+    throw Object.assign(new Error(`${host} ${res.status} ${body.slice(0, 80)}`), { spent });
+  }
   return extractResults(await res.json());
+}
+
+const serpKeys = (env: Env) => [env.SERPAPI_KEY, env.SERPAPI_KEY_2, env.SERPAPI_KEY_3].filter((k): k is string => !!k);
+// Keys that ran out, and when to try them again. Kept per worker instance; a fresh instance
+// re-learns it with one wasted request per spent key.
+const spentUntil = new Map<string, number>();
+
+/** SerpApi with backup keys: tries each key in order, skipping ones that recently ran out. */
+async function fromSerpApi(query: Query, env: Env): Promise<Raw> {
+  const keys = serpKeys(env);
+  const live = keys.filter((k) => (spentUntil.get(k) ?? 0) < Date.now());
+  // If every key looks spent, try them all anyway: the monthly allowance may have reset.
+  let lastError: unknown = new Error('serpapi: no key');
+  for (const key of live.length ? live : keys) {
+    try {
+      return await fromSerpStyle(query, 'serpapi', key);
+    } catch (e: any) {
+      lastError = e;
+      if (!e?.spent) throw e; // a network hiccup or bad query, not the key's fault
+      spentUntil.set(key, Date.now() + 6 * 3600 * 1000);
+    }
+  }
+  throw lastError;
 }
 
 const HEDGE_AFTER_MS = 4000;
@@ -342,12 +372,12 @@ async function chainListings(
     // Everything must land within Cloudflare's ~30 s for background work, refinement included.
     const left = CHAIN_DEADLINE_MS - (Date.now() - started);
     if (left < 3000) break;
-    const useSerp = attempt >= wordings.length && env.SERPAPI_KEY && budget.serp > 0;
+    const useSerp = attempt >= wordings.length && serpKeys(env).length > 0 && budget.serp > 0;
     if (attempt >= wordings.length && !useSerp) break;
     if (useSerp) budget.serp--;
     const q = wordings[Math.min(attempt, wordings.length - 1)];
     try {
-      const raw = useSerp ? fromSerpStyle({ q, gl, location }, 'serpapi', env.SERPAPI_KEY!) : fromBrightData({ q, gl, location }, env);
+      const raw = useSerp ? fromSerpApi({ q, gl, location }, env) : fromBrightData({ q, gl, location }, env);
       const items = normalize(await withDeadline(raw, left));
       if (items.length) return items;
     } catch {
@@ -433,7 +463,7 @@ async function shopping(url: URL, env: Env, ctx: ExecutionContext) {
 
   const providers: { name: string; run: () => Promise<Raw> }[] = [];
   if (env.BRIGHTDATA_API_KEY) providers.push({ name: 'brightdata', run: () => fromBrightData({ q: searchQ, gl, location }, env) });
-  if (env.SERPAPI_KEY) providers.push({ name: 'serpapi', run: () => fromSerpStyle({ q: searchQ, gl, location }, 'serpapi', env.SERPAPI_KEY!) });
+  if (serpKeys(env).length) providers.push({ name: 'serpapi', run: () => fromSerpApi({ q: searchQ, gl, location }, env) });
   if (env.SEARCHAPI_KEY) providers.push({ name: 'searchapi', run: () => fromSerpStyle({ q: searchQ, gl, location }, 'searchapi', env.SEARCHAPI_KEY!) });
   if (!providers.length) return json({ error: 'shopping-disabled' }, 503);
 
