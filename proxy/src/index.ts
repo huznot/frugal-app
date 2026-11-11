@@ -297,15 +297,18 @@ const MAJOR_CHAINS: Record<string, string[]> = {
 const CHAIN_RADIUS_KM = 15;
 const CHAIN_DEADLINE_MS = 14000;
 
+type NearChain = { id: string; name: string; count: number; km: number; lat: number; lon: number };
+
 /**
- * The grocery chains shoppers near this point can walk into, biggest presence first (most
- * branches within 15 km, then nearest). General store data — no hand-made chain lists.
+ * Every grocery chain with a supermarket or warehouse branch within 15 km of this point (~1 km
+ * tile), with its nearest branch. General store data, no hand-made chain lists. The app uses it to
+ * tell a store you can walk into from an online-only seller.
  */
-async function nearbyChains(env: Env, lat: number, lon: number, gl: string, ctx: ExecutionContext): Promise<{ id: string; name: string }[]> {
+async function chainsAround(env: Env, lat: number, lon: number, gl: string, ctx: ExecutionContext): Promise<NearChain[]> {
   if (!env.STORES_DB || !isFinite(lat) || !isFinite(lon)) return [];
-  const tLat = Math.round(lat * 10) / 10;
-  const tLon = Math.round(lon * 10) / 10;
-  const key = `chains/v2/${gl}/${tLat}/${tLon}`;
+  const tLat = Math.round(lat * 100) / 100;
+  const tLon = Math.round(lon * 100) / 100;
+  const key = `chains/v3/${gl}/${tLat}/${tLon}`;
   const hit = await cacheGet(key);
   if (hit) return hit.chains;
 
@@ -317,26 +320,38 @@ async function nearbyChains(env: Env, lat: number, lon: number, gl: string, ctx:
     .bind(tLat - dLat, tLat + dLat, tLon - dLon, tLon + dLon)
     .all<any>();
   const country = gl.toUpperCase();
-  const tally = new Map<string, { id: string; name: string; count: number; nearest: number }>();
+  const tally = new Map<string, NearChain>();
   for (const s of results ?? []) {
     const chain = chainOf(s.brand || s.name, country) ?? (s.brand ? chainOf(s.name, country) : null);
     if (!chain) continue;
     const km = metres({ lat: tLat, lon: tLon }, s) / 1000;
     if (km > CHAIN_RADIUS_KM) continue;
-    const t = tally.get(chain.id) ?? { ...chain, count: 0, nearest: Infinity };
+    const t = tally.get(chain.id) ?? { ...chain, count: 0, km: Infinity, lat: s.lat, lon: s.lon };
     t.count++;
-    t.nearest = Math.min(t.nearest, km);
+    if (km < t.km) Object.assign(t, { km: Math.round(km * 10) / 10, lat: s.lat, lon: s.lon });
     tally.set(chain.id, t);
   }
-  const major = (id: string) => (MAJOR_CHAINS[country] ?? []).includes(id);
-  const chains = [...tally.values()]
-    .filter((c) => major(c.id) || c.count >= 2) // a real presence in the area, not a one-off
-    .sort((a, b) => Number(major(b.id)) - Number(major(a.id)) || b.count - a.count || a.nearest - b.nearest)
-    .slice(0, CHAIN_COUNT)
-    .map(({ id, name }) => ({ id, name }));
+  const chains = [...tally.values()].sort((a, b) => a.km - b.km);
   ctx.waitUntil(cachePut(key, { chains }, 7 * 86400));
   return chains;
 }
+
+/**
+ * The grocery chains to search by name for this shopper, biggest presence first (major chains,
+ * then most branches within 15 km, then nearest).
+ */
+function chainsToSearch(chains: NearChain[], gl: string): { id: string; name: string }[] {
+  const country = gl.toUpperCase();
+  const major = (id: string) => (MAJOR_CHAINS[country] ?? []).includes(id);
+  return chains
+    .filter((c) => major(c.id) || c.count >= 2) // a real presence in the area, not a one-off
+    .sort((a, b) => Number(major(b.id)) - Number(major(a.id)) || b.count - a.count || a.km - b.km)
+    .slice(0, CHAIN_COUNT)
+    .map(({ id, name }) => ({ id, name }));
+}
+
+/** What the app gets: each nearby chain's id, nearest branch and distance from the tile centre. */
+const chainsForApp = (chains: NearChain[]) => chains.map(({ id, name, km, lat, lon }) => ({ id, name, km, lat, lon }));
 
 /** What shoppers call a chain in a search ("real canadian superstore" → "superstore"). Cached 90 days. */
 async function chainSearchName(env: Env, chain: { id: string; name: string }, ctx: ExecutionContext): Promise<string> {
@@ -440,6 +455,9 @@ async function shopping(url: URL, env: Env, ctx: ExecutionContext) {
   const refineCall = (phase: number) =>
     call(`${origin}/refine?${new URLSearchParams({ key: cacheKey, q, phase: String(phase) })}`, { headers: { 'X-App-Key': env.APP_KEY ?? '' } }).catch(() => {});
 
+  // Chains near the shopper (cached per ~1 km): searched by name below, and sent to the app so it
+  // can tell which sellers have a branch you can walk into.
+  const nearPromise = chainsAround(env, lat, lon, gl, ctx).catch(() => [] as NearChain[]);
   const hit = await cacheGet(cacheKey);
   if (hit) {
     // Store listings merged in after the first answer still need judging. Background work only
@@ -447,12 +465,13 @@ async function shopping(url: URL, env: Env, ctx: ExecutionContext) {
     if (hit.toJudge && !(hit.judging > Date.now() - 20000)) {
       ctx.waitUntil(cachePut(cacheKey, { ...hit, judging: Date.now() }, CACHE_SECONDS).then(() => refineCall(2)));
     }
-    return json(hit, 200, { 'X-Cache': 'HIT' });
+    return json({ ...hit, chains: chainsForApp(await nearPromise) }, 200, { 'X-Cache': 'HIT' });
   }
 
   // Turn what the shopper typed into the search that finds it at grocery stores ("apple" →
   // "fresh apples produce", not iPhones). Cached for 30 days per search term.
-  const [searchQ, chains] = await Promise.all([groceryQuery(env, q, ctx), nearbyChains(env, lat, lon, gl, ctx).catch(() => [])]);
+  const [searchQ, near] = await Promise.all([groceryQuery(env, q, ctx), nearPromise]);
+  const chains = chainsToSearch(near, gl);
   const started = Date.now();
   const budget = { serp: 2 };
   // Chain searches start now, in parallel with the general one; they're merged in step 3.
@@ -515,7 +534,7 @@ async function shopping(url: URL, env: Env, ctx: ExecutionContext) {
     })(),
   );
 
-  return json(first, 200, { 'X-Source': found.source });
+  return json({ ...first, chains: chainsForApp(near) }, 200, { 'X-Source': found.source });
 }
 
 /**
@@ -872,28 +891,38 @@ async function stores(url: URL, env: Env, ctx: ExecutionContext) {
   const radiusKm = RADIUS_BUCKETS.find((r) => r >= want) ?? 50;
   const tLat = Math.round(lat * 100) / 100;
   const tLon = Math.round(lon * 100) / 100;
-  const key = `stores/v3/${tLat}/${tLon}/${radiusKm}`;
+  const key = `stores/v4/${tLat}/${tLon}/${radiusKm}`;
   const hit = await cacheGet(key);
   if (hit) return json(hit, 200, { 'X-Cache': 'HIT' });
 
   // 1) Our own store database (fast, always available).
   if (env.STORES_DB) {
     const dLat = radiusKm / 111;
-    const dLon = radiusKm / (111 * Math.cos((tLat * Math.PI) / 180));
-    const { results } = await env.STORES_DB.prepare(
-      'SELECT id, name, brand, wikidata, kind, lat, lon, address, phone, website FROM stores WHERE lat BETWEEN ?1 AND ?2 AND lon BETWEEN ?3 AND ?4 LIMIT 4000',
-    )
-      .bind(tLat - dLat, tLat + dLat, tLon - dLon, tLon + dLon)
-      .all<any>();
+    const cosLat = Math.cos((tLat * Math.PI) / 180);
+    const dLon = radiusKm / (111 * cosLat);
+    // Nearest first (so the cap drops the farthest, not random stores). Supermarkets and wholesale
+    // clubs are fetched on their own: in a dense city the nearest few hundred shops are all corner
+    // stores and bakeries, and the app needs every grocery chain branch in range to tell whether
+    // a price is from a store you can walk into or online only.
+    const cols = 'id, name, brand, wikidata, kind, lat, lon, address, phone, website';
+    const where = 'lat BETWEEN ?1 AND ?2 AND lon BETWEEN ?3 AND ?4';
+    const order = 'ORDER BY (lat - ?5) * (lat - ?5) + (lon - ?6) * (lon - ?6) * ?7';
+    const args = [tLat - dLat, tLat + dLat, tLon - dLon, tLon + dLon, tLat, tLon, cosLat * cosLat];
+    const [grocery, other] = await Promise.all([
+      env.STORES_DB.prepare(`SELECT ${cols} FROM stores WHERE ${where} AND kind IN ('supermarket', 'wholesale') ${order} LIMIT 2000`).bind(...args).all<any>(),
+      env.STORES_DB.prepare(`SELECT ${cols} FROM stores WHERE ${where} AND kind NOT IN ('supermarket', 'wholesale') ${order} LIMIT 2000`).bind(...args).all<any>(),
+    ]);
     const toRad = (d: number) => (d * Math.PI) / 180;
-    const within = dedupeStores(results ?? [])
-      .map((s) => {
-        const a = Math.sin(toRad(s.lat - tLat) / 2) ** 2 + Math.cos(toRad(tLat)) * Math.cos(toRad(s.lat)) * Math.sin(toRad(s.lon - tLon) / 2) ** 2;
-        return { ...s, km: 12742 * Math.asin(Math.sqrt(a)) };
-      })
-      .filter((s) => s.km <= radiusKm)
+    const withKm = (list: any[]) =>
+      dedupeStores(list)
+        .map((s) => {
+          const a = Math.sin(toRad(s.lat - tLat) / 2) ** 2 + Math.cos(toRad(tLat)) * Math.cos(toRad(s.lat)) * Math.sin(toRad(s.lon - tLon) / 2) ** 2;
+          return { ...s, km: 12742 * Math.asin(Math.sqrt(a)) };
+        })
+        .filter((s) => s.km <= radiusKm)
+        .sort((a, b) => a.km - b.km);
+    const within = [...withKm(grocery.results ?? []).slice(0, 900), ...withKm(other.results ?? []).slice(0, 500)]
       .sort((a, b) => a.km - b.km)
-      .slice(0, 600)
       .map(({ km: _km, ...s }) => ({ ...s, brand: s.brand ?? undefined, wikidata: s.wikidata ?? undefined, address: s.address ?? undefined, phone: s.phone ?? undefined, website: s.website ?? undefined }));
     if (within.length) {
       const out = { stores: within, center: { lat: tLat, lon: tLon }, radiusKm, source: 'frugal-db' };

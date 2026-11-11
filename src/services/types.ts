@@ -85,7 +85,8 @@ export type Offer = {
   rating?: number;
   reviews?: number;
   local: boolean; // a physical store chain (vs online-only marketplace)
-  online: boolean; // sold online only — not a store chain at all
+  online: boolean; // no branch you can walk into near you (bought online / delivered)
+  storeChain?: boolean; // a known store chain (just no branch near you) vs an online-only seller
   nearbyStore: boolean; // a branch within your search radius (or Google says it's in stock nearby)
   inStockNearby: boolean; // Google reports this item in stock at a store near the user
   oldPrice?: number; // regular price when on sale

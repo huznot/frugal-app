@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, ScrollView, SectionList, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Text from '../components/Text';
 import Card from '../components/Card';
 import { GradeChip, PriceTag, StoreBadge } from '../components/Badges';
 import { EmptyState, IconButton, ProductImage, SearchBar, Segmented, Skeleton } from '../components/Common';
-import { OfferRow, OfferSheet, OfferSkeleton } from '../components/Offers';
+import { filterOffers, OfferFilter, OfferFilters, OfferRow, OfferSheet, OfferSkeleton, ValueLegend } from '../components/Offers';
+import { LocationPicker, Sheet } from '../components/Sheets';
 import { formatPrice } from '../components/format';
 import { fonts, radius, useTheme } from '../theme';
 import { useApp } from '../state/AppState';
@@ -37,6 +39,8 @@ export default function SearchScreen({ navigation, route }: StackProps<'Search'>
   const [offerStatus, setOfferStatus] = useState<Status>('loading');
   const [openOffer, setOpenOffer] = useState<Offer | null>(null);
   const [stores, setStores] = useState<Set<string>>(new Set());
+  const [filter, setFilter] = useState<OfferFilter>('all');
+  const [locOpen, setLocOpen] = useState(false);
 
   // Products + nutrition (Open Food Facts)
   const [items, setItems] = useState<ProductSummary[]>([]);
@@ -71,6 +75,7 @@ export default function SearchScreen({ navigation, route }: StackProps<'Search'>
       const id = ++offerRequestId.current;
       setOfferStatus('loading');
       setStores(new Set());
+      setFilter('all');
       const radius = Math.max(state.settings.radiusKm, 10);
       try {
         let res = await searchOffers(q, state.location, radius);
@@ -131,7 +136,8 @@ export default function SearchScreen({ navigation, route }: StackProps<'Search'>
       return next;
     });
 
-  const visibleOffers = stores.size ? offers.filter((o) => stores.has(o.seller)) : offers;
+  const byStore = stores.size ? offers.filter((o) => stores.has(o.seller)) : offers;
+  const visibleOffers = filterOffers(byStore, filter);
   const sections = useMemo(() => {
     if (!judged) return [{ key: 'all', title: '', data: visibleOffers }];
     const main = visibleOffers.filter((o) => o.match === 'exact');
@@ -245,6 +251,19 @@ export default function SearchScreen({ navigation, route }: StackProps<'Search'>
         ListHeaderComponent={
           <View style={{ marginHorizontal: -16 }}>
             {storeBar}
+            <OfferFilters offers={byStore} value={filter} onChange={setFilter} style={{ paddingHorizontal: 16, paddingBottom: 10 }} />
+            {!state.location && offers.length > 0 && (
+              <Pressable
+                onPress={() => setLocOpen(true)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, marginBottom: 10 }}
+              >
+                <Ionicons name="location" size={16} color={colors.primary} />
+                <Text variant="small" style={{ flex: 1, fontFamily: fonts.semibold, color: colors.primary }}>
+                  Set your location to see which stores near you have it
+                </Text>
+              </Pressable>
+            )}
+            {judged && <ValueLegend offers={visibleOffers} style={{ marginHorizontal: 16, marginBottom: 10 }} />}
             {offers.length > 0 && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, marginBottom: 10 }}>
                 <Text variant="label" muted style={{ flex: 1 }} numberOfLines={1}>
@@ -272,6 +291,18 @@ export default function SearchScreen({ navigation, route }: StackProps<'Search'>
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         renderItem={({ item }) => <OfferRow offer={item} onPress={() => setOpenOffer(item)} />}
         ListEmptyComponent={
+          offers.length > 0 ? (
+            <EmptyState
+              icon="funnel-outline"
+              title="Nothing matches this filter"
+              message="Try another filter to see the other prices."
+              action="Show all prices"
+              onAction={() => {
+                setFilter('all');
+                setStores(new Set());
+              }}
+            />
+          ) : (
           <EmptyState
             icon="pricetags-outline"
             title="No prices found"
@@ -279,6 +310,7 @@ export default function SearchScreen({ navigation, route }: StackProps<'Search'>
             action="See products instead"
             onAction={() => setTab('products')}
           />
+          )
         }
       />
     );
@@ -309,7 +341,7 @@ export default function SearchScreen({ navigation, route }: StackProps<'Search'>
           <EmptyState
             icon="search"
             title="Nothing on this shelf"
-            message="Try a simpler term like “oat milk” or a brand name — or scan the product instead."
+            message="Try a simpler term like “oat milk” or a brand name, or scan the product instead."
             action="Scan instead"
             onAction={() => navigation.navigate('Tabs', { screen: 'Scan' } as never)}
           />
@@ -352,6 +384,9 @@ export default function SearchScreen({ navigation, route }: StackProps<'Search'>
       )}
       <View style={{ flex: 1 }}>{tab === 'prices' ? pricesTab : productsTab}</View>
       <OfferSheet offer={openOffer} onClose={() => setOpenOffer(null)} isFood={isFood} />
+      <Sheet visible={locOpen} onClose={() => setLocOpen(false)} title="Your location">
+        <LocationPicker onDone={() => setLocOpen(false)} />
+      </Sheet>
     </View>
   );
 }

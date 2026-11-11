@@ -3,6 +3,7 @@ import { fetchJson, memoCache } from './http';
 import { currencyFor } from './openPrices';
 import { getNearbyStores } from './stores';
 import { wikidataFor } from './logos';
+import { distanceKm } from './geo';
 import { Offer, Store, UserLocation } from './types';
 
 // Store prices for any product, from Google Shopping (through our proxy so the API key
@@ -34,15 +35,26 @@ const COUNTRY_NAMES: Record<string, string> = {
 
 /** "Voila by Sobeys" → "Sobeys", "Walmart.ca" → "Walmart", "DoorDash - No Frills" → "No Frills". */
 export function cleanSeller(raw: string): string {
-  return raw
+  const cleaned = raw
     .replace(/^(voil[aà]|doordash|instacart|uber\s*eats|pc express)\s*(by|-|–|:)?\s*/i, '')
     .replace(/\s*(-|–|\|)\s*(instacart|doordash|delivery).*$/i, '')
     .replace(/\.(ca|com|co\.uk)$/i, '')
     .replace(/\s+/g, ' ')
     .trim();
+  // "PC Express" or "Instacart" on its own is the whole seller name: keep it.
+  return cleaned || raw.trim();
 }
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+/** A grocery chain with a branch near the shopper, from the server's store database. */
+type NearChain = { id: string; name: string; km: number; lat: number; lon: number };
+
+function nearbyChain(seller: string, chains: NearChain[]): NearChain | undefined {
+  const ids = new Set(wikidataFor(seller));
+  const n = norm(seller);
+  return chains.find((c) => ids.has(c.id) || norm(c.name) === n);
+}
 
 function nearestBranch(seller: string, stores: Store[]): Store | undefined {
   const ids = new Set(wikidataFor(seller));
@@ -148,7 +160,7 @@ export async function searchOffers(query: string, location: UserLocation | undef
 
   // Nearby stores are usually already cached (prefetched at startup), so this adds no delay.
   const [data, stores] = await Promise.all([
-    fetchJson<{ items: any[]; judged?: boolean; more?: boolean; meaning?: string; isFood?: boolean | null; unit?: 'ml' | 'g' | 'each' | null }>(`${API_BASE_URL}/shopping?${params}`, { headers: { 'X-App-Key': API_APP_KEY }, timeoutMs: 20000 }),
+    fetchJson<{ items: any[]; judged?: boolean; more?: boolean; meaning?: string; isFood?: boolean | null; unit?: 'ml' | 'g' | 'each' | null; chains?: NearChain[] }>(`${API_BASE_URL}/shopping?${params}`, { headers: { 'X-App-Key': API_APP_KEY }, timeoutMs: 20000 }),
     location ? getNearbyStores(location.lat, location.lon, radiusKm).catch(() => [] as Store[]) : Promise.resolve([] as Store[]),
   ]);
 
@@ -160,10 +172,15 @@ export async function searchOffers(query: string, location: UserLocation | undef
     const dedupe = `${norm(seller)}|${item.price}|${norm(item.title).slice(0, 40)}`;
     if (seen.has(dedupe)) continue;
     seen.add(dedupe);
-    const branch = nearestBranch(seller, stores);
+    const store = nearestBranch(seller, stores);
+    // The server also lists every grocery chain with a branch within ~15 km, so a big chain a few
+    // km away still counts even when it's past the nearest stores the app downloaded.
+    const chain = store ? undefined : nearbyChain(seller, data.chains ?? []);
+    const branch = store ?? (chain && location ? { lat: chain.lat, lon: chain.lon, distanceKm: distanceKm(location.lat, location.lon, chain.lat, chain.lon) } : undefined);
     // Our distance uses the user's real position + the chain's nearest branch (OpenStreetMap);
     // fall back to Google's own "Nearby, 4 km" figure.
     const distance = branch?.distanceKm ?? (typeof item.nearbyKm === 'number' ? item.nearbyKm : undefined);
+    const nearby = !!(branch || item.nearby);
     offers.push({
       id: `${item.id}-${offers.length}`,
       title: item.title,
@@ -177,9 +194,11 @@ export async function searchOffers(query: string, location: UserLocation | undef
       // In store only if you can actually walk into one: a branch of this seller within your
       // radius in our store database, or Google says it's in stock nearby. A chain existing
       // somewhere else in the world (e.g. Amazon Go in the US) doesn't count.
-      local: !!(branch || item.nearby),
-      online: !(branch || item.nearby),
-      nearbyStore: !!(branch || item.nearby),
+      local: nearby,
+      online: !nearby,
+      // A store chain we know (just none near you) vs a seller that only sells online.
+      storeChain: wikidataFor(seller).length > 0,
+      nearbyStore: nearby,
       inStockNearby: !!item.nearby,
       oldPrice: typeof item.oldPrice === 'number' ? item.oldPrice : undefined,
       tag: typeof item.tag === 'string' && /off|sale|low price/i.test(item.tag) ? item.tag : undefined,

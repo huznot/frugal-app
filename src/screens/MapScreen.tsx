@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Text from '../components/Text';
@@ -26,6 +26,38 @@ const USE_WEB_MAP = Platform.OS === 'android';
 
 type Load = 'loading' | 'ready' | 'error';
 
+// Grocery stores win when logos would overlap, then the nearest.
+const mapPriority = (a: Store, b: Store) =>
+  Number(!(a.kind === 'supermarket' || a.kind === 'wholesale')) - Number(!(b.kind === 'supermarket' || b.kind === 'wholesale')) ||
+  (a.distanceKm ?? 0) - (b.distanceKm ?? 0);
+
+/**
+ * iPhone map: hide logos that would sit on top of another one at this zoom (keeping the higher
+ * priority store, with a "+N" count on it). Positions are a linear estimate from the visible
+ * region, which is plenty at city scale.
+ */
+function declutter(stores: Store[], region: Region | null, w: number, h: number, selectedId?: string, px = 42) {
+  const hidden: Record<string, number> = {};
+  if (!region) return { shown: stores, hidden };
+  const left = region.longitude - region.longitudeDelta / 2;
+  const top = region.latitude + region.latitudeDelta / 2;
+  const kept: { id: string; x: number; y: number }[] = [];
+  const ordered = [...stores].sort((a, b) => Number(b.id === selectedId) - Number(a.id === selectedId) || mapPriority(a, b));
+  const shown: Store[] = [];
+  for (const s of ordered) {
+    const x = ((s.lon - left) / region.longitudeDelta) * w;
+    const y = ((top - s.lat) / region.latitudeDelta) * h;
+    const hit = kept.find((k) => Math.abs(k.x - x) < px && Math.abs(k.y - y) < px);
+    if (hit && s.id !== selectedId) {
+      hidden[hit.id] = (hidden[hit.id] ?? 0) + 1;
+      continue;
+    }
+    kept.push({ id: s.id, x, y });
+    shown.push(s);
+  }
+  return { shown, hidden };
+}
+
 export default function MapScreen() {
   const { colors, dark } = useTheme();
   const insets = useSafeAreaInsets();
@@ -44,6 +76,8 @@ export default function MapScreen() {
   const [recenter, setRecenter] = useState(0);
   const [livePosition, setLivePosition] = useState(false); // permission granted → OS draws the live blue dot
   const [logos, setLogos] = useState<Record<string, string | null>>({});
+  const [region, setRegion] = useState<Region | null>(null);
+  const screen = useWindowDimensions();
   const radiusKm = Math.min(state.settings.radiusKm, 50);
 
   // Follow the user's saved location.
@@ -73,14 +107,21 @@ export default function MapScreen() {
 
   const retry = useCallback(() => setAttempt((a) => a + 1), []);
 
-  const visible = useMemo(() => stores.filter((s) => filter === 'all' || s.kind === filter).slice(0, 250), [stores, filter]);
+  const visible = useMemo(
+    () => stores.filter((s) => filter === 'all' || s.kind === filter).sort(mapPriority).slice(0, 250),
+    [stores, filter],
+  );
+  const iosPins = useMemo(
+    () => (USE_WEB_MAP ? { shown: visible, hidden: {} as Record<string, number> } : declutter(visible, region, screen.width, screen.height, selected?.id)),
+    [visible, region, screen.width, screen.height, selected?.id],
+  );
 
   // iOS custom markers must render (and load their logo) before we stop tracking changes.
   useEffect(() => {
     setTracks(true);
     const t = setTimeout(() => setTracks(false), 2500);
     return () => clearTimeout(t);
-  }, [visible, selected, dark]);
+  }, [iosPins.shown, selected, dark]);
 
   // Android map markers show real logos too: resolve them here and pass the URLs to the WebView.
   useEffect(() => {
@@ -171,7 +212,7 @@ export default function MapScreen() {
         <Text variant="small">{stores.length ? 'Updating stores…' : 'Finding stores…'}</Text>
       </View>
     ) : load === 'error' ? (
-      <Button3D title="Couldn't load stores — retry" size="sm" tone="neutral" icon="refresh" onPress={retry} />
+      <Button3D title="Couldn't load stores, retry" size="sm" tone="neutral" icon="refresh" onPress={retry} />
     ) : moved && view === 'map' ? (
       <Button3D
         title="Search this area"
@@ -237,7 +278,11 @@ export default function MapScreen() {
           toolbarEnabled={false}
           userInterfaceStyle={dark ? 'dark' : 'light'}
           onPress={() => setSelected(null)}
-          onRegionChangeComplete={(r) => onAreaMoved(r.latitude, r.longitude)}
+          onMapReady={() => setRegion(initial)}
+          onRegionChangeComplete={(r) => {
+            setRegion(r);
+            onAreaMoved(r.latitude, r.longitude);
+          }}
         >
           {/* Your saved location (postal code / city), when there's no live GPS dot */}
           {!livePosition && (
@@ -247,8 +292,9 @@ export default function MapScreen() {
               </View>
             </Marker>
           )}
-          {visible.map((s) => {
+          {iosPins.shown.map((s) => {
             const active = selected?.id === s.id;
+            const more = iosPins.hidden[s.id];
             return (
               <Marker
                 key={s.id}
@@ -262,9 +308,15 @@ export default function MapScreen() {
                 zIndex={active ? 10 : 1}
                 anchor={{ x: 0.5, y: 1 }}
               >
-                <View style={{ alignItems: 'center' }}>
+                {/* Room around the pin so the "+N" count isn't clipped by the marker's bounds */}
+                <View style={{ alignItems: 'center', paddingTop: 8, paddingHorizontal: 10 }}>
                   <View style={{ padding: 2, borderRadius: 14, backgroundColor: active ? colors.primary : '#FFFFFF', ...softShadow }}>
                     <StoreBadge name={s.brand ?? s.name} wikidata={s.wikidata} size={active ? 42 : 32} />
+                    {!!more && (
+                      <View style={styles.moreBadge}>
+                        <Text style={styles.moreText}>+{more}</Text>
+                      </View>
+                    )}
                   </View>
                   <View style={[styles.pinTail, { borderTopColor: active ? colors.primary : '#FFFFFF' }]} />
                 </View>
@@ -328,5 +380,20 @@ const styles = StyleSheet.create({
   },
   youHalo: { width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(63,123,255,0.22)', alignItems: 'center', justifyContent: 'center' },
   youDot: { width: 16, height: 16, borderRadius: 8, backgroundColor: '#3F7BFF', borderWidth: 3, borderColor: '#FFFFFF' },
+  moreBadge: {
+    position: 'absolute',
+    top: -7,
+    right: -9,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 4,
+    borderRadius: 10,
+    backgroundColor: '#1C1B1F',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moreText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, height: 36, borderRadius: radius.pill },
 });

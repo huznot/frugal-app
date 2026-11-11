@@ -7,7 +7,7 @@ import Card from '../components/Card';
 import Button3D from '../components/Button3D';
 import LogPriceSheet from '../components/LogPriceSheet';
 import { GradeChip, PriceTag, StoreBadge, Sticker } from '../components/Badges';
-import { OfferRow, OfferSheet, OfferSkeleton } from '../components/Offers';
+import { filterOffers, OfferFilter, OfferFilters, OfferRow, OfferSheet, OfferSkeleton, ValueLegend } from '../components/Offers';
 import { IconButton, ProductImage, Segmented, Skeleton } from '../components/Common';
 import { LocationPicker, Sheet } from '../components/Sheets';
 import { formatPrice, isStale, timeAgo } from '../components/format';
@@ -93,6 +93,7 @@ export default function ProductScreen({ navigation, route }: StackProps<'Product
   const [offersFailed, setOffersFailed] = useState(false);
   const [openOffer, setOpenOffer] = useState<Offer | null>(null);
   const [showAllOffers, setShowAllOffers] = useState(false);
+  const [offerFilter, setOfferFilter] = useState<OfferFilter>('all');
   const quantity = product?.quantity ?? preview?.quantity ?? identity?.size;
   // Search stores by the real product name (brand + name + size). Never by the raw barcode number.
   const identityReady = preview || identity !== undefined;
@@ -146,7 +147,7 @@ export default function ProductScreen({ navigation, route }: StackProps<'Product
   };
 
   const share = () =>
-    Share.share({ message: `${displayName}${prices?.cheapest ? ` — ${formatPrice(prices.cheapest.price, prices.cheapest.currency)} at ${prices.cheapest.storeName}` : ''}\n${offProductUrl(code)}` });
+    Share.share({ message: `${displayName}${prices?.cheapest ? `: ${formatPrice(prices.cheapest.price, prices.cheapest.currency)} at ${prices.cheapest.storeName}` : ''}\n${offProductUrl(code)}` });
 
   const header = (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: insets.top + 8, paddingBottom: 8 }}>
@@ -155,6 +156,7 @@ export default function ProductScreen({ navigation, route }: StackProps<'Product
     </View>
   );
 
+  const filtered = offers ? filterOffers(offers, offerFilter) : [];
   const unknown = product === null && !preview && !identity;
   const displayName = name || (unknown && identity === null ? `Barcode ${code}` : '');
   const image = product?.imageUrl ?? preview?.imageUrl ?? (unknown ? offers?.[0]?.thumbnail : undefined);
@@ -225,17 +227,19 @@ export default function ProductScreen({ navigation, route }: StackProps<'Product
           <OfferSkeleton />
         ) : offers.length === 0 ? (
           <Text variant="small" muted>
-            {offersFailed ? "Couldn't load store prices — check your connection." : 'No store listings found for this product.'}
+            {offersFailed ? "Couldn't load store prices. Check your connection." : 'No store listings found for this product.'}
           </Text>
         ) : (
           <View style={{ gap: 10 }}>
-            {(showAllOffers ? offers : offers.slice(0, 6)).map((o) => (
+            <OfferFilters offers={offers} value={offerFilter} onChange={setOfferFilter} style={{ paddingRight: 4 }} />
+            <ValueLegend offers={filtered} />
+            {(showAllOffers ? filtered : filtered.slice(0, 6)).map((o) => (
               <OfferRow key={o.id} offer={o} onPress={() => setOpenOffer(o)} />
             ))}
-            {offers.length > 6 && (
+            {filtered.length > 6 && (
               <Pressable onPress={() => setShowAllOffers((v) => !v)} style={{ alignSelf: 'center', padding: 8 }}>
                 <Text variant="small" style={{ fontFamily: fonts.semibold, color: colors.primary }}>
-                  {showAllOffers ? 'Show fewer' : `Show all ${offers.length} prices`}
+                  {showAllOffers ? 'Show fewer' : `Show all ${filtered.length} prices`}
                 </Text>
               </Pressable>
             )}
@@ -299,7 +303,7 @@ export default function ProductScreen({ navigation, route }: StackProps<'Product
         {isFood && (
           <>
             <Text variant="small" muted style={{ marginTop: 28, lineHeight: 19 }}>
-              Product data from Open Food Facts, a collaborative database — it may be incomplete or out of date. Always check the label, especially for allergens.
+              Product data from Open Food Facts, a collaborative database. It may be incomplete or out of date. Always check the label, especially for allergens.
             </Text>
             <Pressable onPress={() => openWeb(offProductUrl(code))} style={{ marginTop: 8 }}>
               <Text variant="small" style={{ fontFamily: fonts.bold, color: colors.primary }}>
@@ -459,7 +463,7 @@ function NutritionSection({ product }: { product: Product }) {
           )}
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
             <Text style={{ fontFamily: fonts.display, fontSize: 48, lineHeight: 50, color: colors.text }}>
-              {n.energyKcal != null ? Math.round(n.energyKcal) : '—'}
+              {n.energyKcal != null ? Math.round(n.energyKcal) : '-'}
             </Text>
             <Text variant="bodyStrong" muted style={{ marginBottom: 8 }}>
               kcal
@@ -522,7 +526,7 @@ function NutritionSection({ product }: { product: Product }) {
             </Text>
           )}
           <Text variant="small" muted>
-            Crowdsourced data — always read the package if you have an allergy.
+            Crowdsourced data. Always read the package if you have an allergy.
           </Text>
         </Card>
       )}

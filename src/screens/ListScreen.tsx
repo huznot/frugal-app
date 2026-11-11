@@ -251,7 +251,7 @@ export default function ListScreen() {
                 {priced.length} of {open.length} items priced
               </Text>
             </View>
-            <PriceTag price={priced.length ? formatPrice(total, currency) : '—'} />
+            <PriceTag price={priced.length ? formatPrice(total, currency) : '-'} />
           </Card>
         </View>
       )}

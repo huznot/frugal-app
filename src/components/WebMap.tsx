@@ -31,6 +31,8 @@ html,body,#map{margin:0;height:100%;width:100%;background:${dark ? '#1c1c1c' : '
 .m img{width:84%;height:84%;object-fit:contain}
 .m .mono{width:100%;height:100%;border-radius:9px;display:flex;align-items:center;justify-content:center;font:700 12px system-ui}
 .maplibregl-marker:has(.sel){z-index:2}
+.n{position:absolute;top:-6px;right:-8px;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:9px;background:#1C1B1F;color:#fff;font:700 10px/18px system-ui;text-align:center;border:2px solid #fff}
+.w{position:relative}
 .you{width:18px;height:18px;border-radius:50%;background:#3F7BFF;border:3px solid #fff;box-shadow:0 0 0 8px rgba(63,123,255,.22)}
 .maplibregl-ctrl-attrib{font-size:10px}
 </style></head><body><div id="map"></div><script>
@@ -42,15 +44,27 @@ map.on('moveend',(e)=>{if(e.originalEvent){const c=map.getCenter();post({type:'m
 // MapLibre positions a marker by setting transform on the element it's given, so the styled badge
 // (with its scale transition) sits inside a plain wrapper. Otherwise every pan/zoom gets animated
 // and the markers lag and wobble behind the map.
-function el(s){const w=document.createElement('div');const d=document.createElement('div');d.className='m';w.appendChild(d);
+function el(s){const w=document.createElement('div');w.className='w';const d=document.createElement('div');d.className='m';w.appendChild(d);
+  const n=document.createElement('div');n.className='n';n.style.display='none';w.appendChild(n);
   if(s.logo){const i=document.createElement('img');i.src=s.logo;i.onerror=()=>{d.innerHTML='<div class="mono" style="background:'+s.bg+';color:'+s.fg+'">'+s.mono+'</div>'};d.appendChild(i);}
   else d.innerHTML='<div class="mono" style="background:'+s.bg+';color:'+s.fg+'">'+s.mono+'</div>';
   w.addEventListener('click',(e)=>{e.stopPropagation();post({type:'select',id:s.id});});return w;}
+// Logos that would overlap on screen: keep the first in priority order (the list arrives sorted:
+// supermarkets, then nearest), hide the rest and show "+N" on the one kept. Zoom in to see them.
+function declutter(){
+  const S=40,kept=[];const list=Object.values(markers).sort((a,b)=>(b._id===selected)-(a._id===selected)||a._rank-b._rank);
+  for(const m of list){const p=map.project(m.getLngLat());const hit=kept.find(k=>Math.abs(k.x-p.x)<S&&Math.abs(k.y-p.y)<S);
+    const w=m.getElement();if(hit&&m._id!==selected){w.style.visibility='hidden';w.style.pointerEvents='none';hit.n++;}
+    else{w.style.visibility='';w.style.pointerEvents='';kept.push({x:p.x,y:p.y,n:0,w});}}
+  for(const k of kept){const b=k.w.querySelector('.n');b.style.display=k.n?'':'none';b.textContent='+'+k.n;}
+}
+let raf=0;const soon=()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=0;declutter();});};
+map.on('zoom',soon);map.on('resize',soon);
 window.frugal={
-  setStores(list){const keep={};for(const s of list){const k=s.id+'|'+(s.logo||'');if(markers[k]){keep[k]=markers[k];delete markers[k];continue;}
-    keep[k]=new maplibregl.Marker({element:el(s)}).setLngLat([s.lon,s.lat]).addTo(map);keep[k]._id=s.id;}
+  setStores(list){const keep={};list.forEach((s,i)=>{const k=s.id+'|'+(s.logo||'');if(markers[k]){keep[k]=markers[k];delete markers[k];keep[k]._rank=i;return;}
+    keep[k]=new maplibregl.Marker({element:el(s)}).setLngLat([s.lon,s.lat]).addTo(map);keep[k]._id=s.id;keep[k]._rank=i;});
     for(const k in markers)markers[k].remove();markers=keep;this.setSelected(selected);},
-  setSelected(id){selected=id;for(const k in markers){markers[k].getElement().firstChild.classList.toggle('sel',markers[k]._id===id);}},
+  setSelected(id){selected=id;for(const k in markers){markers[k].getElement().firstChild.classList.toggle('sel',markers[k]._id===id);}declutter();},
   setUser(lat,lon){if(!you){const d=document.createElement('div');d.className='you';you=new maplibregl.Marker({element:d}).setLngLat([lon,lat]).addTo(map);}else you.setLngLat([lon,lat]);},
   flyTo(lat,lon){map.flyTo({center:[lon,lat],zoom:12.5,duration:500});}
 };

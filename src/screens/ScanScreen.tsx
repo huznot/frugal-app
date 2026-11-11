@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Linking, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Animated, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { CameraView, useCameraPermissions, BarcodeScanningResult } from 'expo-camera';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +21,36 @@ export function isValidBarcode(code: string) {
   return (10 - (sum % 10)) % 10 === check;
 }
 
+/**
+ * UPC-E (the short barcode on small packs) → its full 12-digit UPC-A. A UPC-E check digit belongs to
+ * the expanded code, so checking the 8 digits as an EAN-8 rejects good reads.
+ */
+export function expandUpcE(code: string): string | null {
+  const m = code.match(/^([01])(\d{6})(\d)$/);
+  if (!m) return null;
+  const [, ns, d, check] = m;
+  const last = +d[5];
+  const body =
+    last <= 2
+      ? `${d.slice(0, 2)}${last}0000${d.slice(2, 5)}`
+      : last === 3
+        ? `${d.slice(0, 3)}00000${d.slice(3, 5)}`
+        : last === 4
+          ? `${d.slice(0, 4)}00000${d[4]}`
+          : `${d.slice(0, 5)}0000${last}`;
+  return `${ns}${body}${check}`;
+}
+
+/** A clean product code from a scan, or null for a misread. */
+export function scannedCode(raw: string, type?: string): string | null {
+  const code = raw.replace(/\D/g, '');
+  if (code.length === 8 && ((type && /upc[_-]?e/i.test(type)) || !isValidBarcode(code))) {
+    const full = expandUpcE(code);
+    if (full && isValidBarcode(full)) return full;
+  }
+  return isValidBarcode(code) ? code : null;
+}
+
 
 export default function ScanScreen() {
   const { colors } = useTheme();
@@ -37,10 +67,20 @@ export default function ScanScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
   const [manual, setManual] = useState('');
+  // Nothing read after a few seconds is usually a dim aisle: point at the flashlight.
+  const [dimHint, setDimHint] = useState(false);
+  const [focusKey, setFocusKey] = useState(0);
   const locked = useRef(false);
   const camera = useRef<CameraView>(null);
   const cameraReady = useRef(false);
   const sweep = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    setDimHint(false);
+    if (!focused || torch || busy || !permission?.granted) return;
+    const t = setTimeout(() => setDimHint(true), 4500);
+    return () => clearTimeout(t);
+  }, [focused, torch, busy, permission?.granted]);
 
   // Re-arm every time the tab comes back into focus.
   useEffect(() => {
@@ -75,10 +115,10 @@ export default function ScanScreen() {
   );
 
   const onBarcode = useCallback(
-    ({ data }: BarcodeScanningResult) => {
+    ({ data, type }: BarcodeScanningResult) => {
       if (locked.current || busy) return;
-      const code = data.replace(/\D/g, '');
-      if (!isValidBarcode(code)) return; // keep scanning — a clean read is usually a frame away
+      const code = scannedCode(data, type);
+      if (!code) return; // keep scanning, a clean read is usually a frame away
       locked.current = true;
       openProduct(code);
     },
@@ -157,7 +197,7 @@ export default function ScanScreen() {
           />
           {manual.length >= 8 && !manualValid && (
             <Text variant="small" style={{ color: colors.danger }}>
-              That doesn't look like a valid barcode — double-check the digits.
+              That doesn't look like a valid barcode. Double-check the digits.
             </Text>
           )}
           <Button3D
@@ -204,6 +244,8 @@ export default function ScanScreen() {
           style={StyleSheet.absoluteFill}
           facing="back"
           enableTorch={torch}
+          // iPhone: focus again on every tap of the viewfinder (Android refocuses continuously).
+          autofocus={focusKey % 2 ? 'on' : 'off'}
           barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e'] }}
           onBarcodeScanned={busy ? undefined : onBarcode}
           onCameraReady={() => (cameraReady.current = true)}
@@ -211,6 +253,9 @@ export default function ScanScreen() {
         />
       )}
       {frozen && <Image source={{ uri: frozen }} style={StyleSheet.absoluteFill} contentFit="cover" />}
+
+      {/* Tap anywhere on the picture to refocus */}
+      <Pressable style={StyleSheet.absoluteFill} onPress={() => setFocusKey((k) => k + 1)} accessible={false} />
 
       {/* Top controls */}
       <View style={{ position: 'absolute', top: insets.top + 12, left: 16, right: 16, gap: 12 }}>
@@ -224,7 +269,7 @@ export default function ScanScreen() {
             icon={torch ? 'flash' : 'flash-outline'}
             label={torch ? 'Turn off flashlight' : 'Turn on flashlight'}
             onPress={() => setTorch((t) => !t)}
-            bg={torch ? colors.sun : undefined}
+            bg={torch || dimHint ? colors.sun : undefined}
           />
         </View>
       </View>
@@ -287,7 +332,12 @@ export default function ScanScreen() {
           <Text variant="bodyStrong" color="#FFFFFF" center>
             {busy
               ? 'Identifying…'
-              : message ?? (photoMode ? 'Snap the front of the product, barcodes are read automatically' : 'Line up the barcode, it scans automatically')}
+              : message ??
+                (dimHint
+                  ? 'Too dark? Turn on the flashlight, or hold the barcode a little farther away'
+                  : photoMode
+                    ? 'Snap the front of the product, barcodes are read automatically'
+                    : 'Line up the barcode, it scans automatically')}
           </Text>
         </View>
         {photoMode &&

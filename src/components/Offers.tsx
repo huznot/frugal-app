@@ -19,21 +19,120 @@ import { Offer, Product } from '../services/types';
 export const formatUnitPrice = (o: Offer) =>
   o.unitPrice != null && o.unitLabel ? `${o.sizeEstimated ? '~' : ''}${formatPrice(o.unitPrice, o.currency)}${o.unitLabel}${o.sizeEstimated ? ' est.' : ''}` : undefined;
 
+/** "/100 mL" → "per 100 mL", "/ea" → "per item". */
+const perWords = (unitLabel?: string) => (unitLabel === '/ea' ? 'per item' : unitLabel ? `per ${unitLabel.slice(1)}` : undefined);
+
+/** Where you can buy it, in plain words: a store near you, or online (and why). */
+export function availability(offer: Offer, units: 'km' | 'mi') {
+  const km = offer.distanceKm != null ? ` · ${formatDistance(offer.distanceKm, units)}` : '';
+  if (offer.nearbyStore) return { inStore: true, text: `${offer.inStockNearby ? 'In stock at a store nearby' : 'Store nearby'}${km}` };
+  return { inStore: false, text: offer.storeChain ? 'Online · no store near you' : 'Online only · delivered' };
+}
+
+export type OfferFilter = 'all' | 'store' | 'online' | 'sale';
+
+const FILTERS: { value: OfferFilter; label: string; icon: keyof typeof Ionicons.glyphMap; test: (o: Offer) => boolean }[] = [
+  { value: 'all', label: 'All', icon: 'apps', test: () => true },
+  { value: 'store', label: 'Stores near me', icon: 'storefront', test: (o) => o.nearbyStore },
+  { value: 'online', label: 'Online', icon: 'globe-outline', test: (o) => !o.nearbyStore },
+  { value: 'sale', label: 'On sale', icon: 'pricetag', test: (o) => o.oldPrice != null || !!o.tag },
+];
+
+export const filterOffers = (offers: Offer[], f: OfferFilter) => offers.filter(FILTERS.find((x) => x.value === f)!.test);
+
+/** Quick filters over the results: stores near me, online, on sale. Empty filters are hidden. */
+export function OfferFilters({ offers, value, onChange, style }: { offers: Offer[]; value: OfferFilter; onChange: (f: OfferFilter) => void; style?: object }) {
+  const { colors } = useTheme();
+  const { haptic } = useApp();
+  if (offers.length < 2) return null;
+  const shown = FILTERS.map((f) => ({ ...f, count: offers.filter(f.test).length })).filter((f) => f.value === 'all' || f.value === value || f.count > 0);
+  if (shown.length < 2) return null;
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[{ gap: 8 }, style]}>
+      {shown.map((f) => {
+        const on = value === f.value;
+        return (
+          <Pressable
+            key={f.value}
+            onPress={() => {
+              haptic('light');
+              onChange(on && f.value !== 'all' ? 'all' : f.value);
+            }}
+            accessibilityRole="button"
+            accessibilityState={{ selected: on }}
+            accessibilityLabel={`${f.label}, ${f.count} prices`}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              height: 34,
+              paddingHorizontal: 12,
+              borderRadius: radius.pill,
+              borderWidth: on ? 0 : 1,
+              borderColor: colors.border,
+              backgroundColor: on ? colors.ink : colors.surface,
+              transform: [{ scale: pressed ? 0.96 : 1 }],
+            })}
+          >
+            <Ionicons name={f.icon} size={14} color={on ? colors.onInk : colors.text} />
+            <Text variant="small" style={{ fontFamily: fonts.semibold, fontSize: 12, color: on ? colors.onInk : colors.text }}>
+              {f.value === 'all' ? f.label : `${f.label} (${f.count})`}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+/** What the two markers mean, shown above results that carry them. */
+export function ValueLegend({ offers, style }: { offers: Offer[]; style?: object }) {
+  const { colors } = useTheme();
+  const best = offers.find((o) => o.best);
+  const cheapest = offers.find((o) => o.cheapest);
+  if (!best && !cheapest) return null;
+  const per = perWords(best?.unitLabel);
+  return (
+    <View style={[{ backgroundColor: colors.surfaceAlt, borderRadius: radius.md, padding: 10, gap: 6 }, style]}>
+      {best && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Sticker label="BEST VALUE" bg={colors.success} />
+          <Text variant="small" muted style={{ flex: 1, fontSize: 12 }}>
+            {per ? `Lowest price ${per}, the most for your money` : 'Lowest price for what you searched'}
+          </Text>
+        </View>
+      )}
+      {cheapest && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Sticker label="CHEAPEST" bg={colors.sky} />
+          <Text variant="small" muted style={{ flex: 1, fontSize: 12 }}>
+            Lowest total at checkout, whatever the pack size
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 export function OfferRow({ offer, onPress }: { offer: Offer; onPress: () => void }) {
   const { colors } = useTheme();
   const { state } = useApp();
-  const where = [
-    offer.online ? '' : offer.inStockNearby ? 'In stock nearby' : 'Store nearby',
-    offer.distanceKm != null ? formatDistance(offer.distanceKm, state.settings.units) : '',
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  const where = availability(offer, state.settings.units);
   const unit = formatUnitPrice(offer);
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${offer.title}, ${formatPrice(offer.price, offer.currency)} at ${offer.seller}`}
+      accessibilityLabel={[
+        offer.title,
+        `${formatPrice(offer.price, offer.currency)} at ${offer.seller}`,
+        unit,
+        where.text,
+        offer.best ? 'best value' : '',
+        offer.cheapest ? 'cheapest' : '',
+      ]
+        .filter(Boolean)
+        .join(', ')}
       style={({ pressed }) => ({
         flexDirection: 'row',
         gap: 12,
@@ -52,19 +151,22 @@ export function OfferRow({ offer, onPress }: { offer: Offer; onPress: () => void
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <StoreBadge name={offer.seller} size={24} />
-          <Text variant="small" muted numberOfLines={1} style={{ flexShrink: 1 }}>
-            {[offer.seller, where].filter(Boolean).join(' · ')}
+          <Text variant="small" muted numberOfLines={1} style={{ flexShrink: 1, fontFamily: fonts.semibold }}>
+            {offer.seller}
           </Text>
-          {offer.online && (
-            <View style={{ backgroundColor: colors.skySoft, borderRadius: radius.pill, paddingHorizontal: 7, paddingVertical: 1 }}>
-              <Text style={{ fontFamily: fonts.semibold, fontSize: 10, color: colors.sky }}>ONLINE ONLY</Text>
-            </View>
-          )}
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+          <Ionicons name={where.inStore ? 'storefront' : 'globe-outline'} size={13} color={where.inStore ? colors.success : colors.sky} />
+          <Text variant="small" numberOfLines={1} style={{ flexShrink: 1, fontSize: 12, color: where.inStore ? colors.success : colors.sky, fontFamily: fonts.medium }}>
+            {where.text}
+          </Text>
         </View>
       </View>
       <View style={{ alignItems: 'flex-end', justifyContent: 'space-between', minWidth: 76 }}>
         <View style={{ alignItems: 'flex-end' }}>
-          <Text variant="price" style={{ fontSize: 19, color: offer.best ? colors.success : colors.text }}>
+          {/* Each marker's colour sits on the number it's about: the total for cheapest, the price
+              per amount for best value. */}
+          <Text variant="price" style={{ fontSize: 19, color: offer.cheapest ? colors.sky : colors.text }}>
             {formatPrice(offer.price, offer.currency)}
           </Text>
           {offer.oldPrice != null && (
@@ -73,7 +175,11 @@ export function OfferRow({ offer, onPress }: { offer: Offer; onPress: () => void
             </Text>
           )}
           {unit && (
-            <Text variant="small" muted style={{ fontSize: 11 }}>
+            <Text
+              variant="small"
+              muted={!offer.best}
+              style={{ fontSize: offer.best ? 12 : 11, color: offer.best ? colors.success : undefined, fontFamily: offer.best ? fonts.semibold : undefined }}
+            >
               {unit}
             </Text>
           )}
@@ -181,12 +287,35 @@ function OfferDetails({ offer, onClose, isFood }: { offer: Offer; onClose: () =>
         <Text variant="small" muted style={{ flex: 1 }}>
           {offer.inStockNearby
             ? `In stock at a ${offer.seller} near you${offer.distanceKm != null ? ` · ${formatDistance(offer.distanceKm, state.settings.units)}` : ''}`
-            : offer.distanceKm != null
-              ? `Nearest ${offer.seller} is ${formatDistance(offer.distanceKm, state.settings.units)} away`
-              : `Online only · sold by ${offer.seller}`}
+            : offer.nearbyStore
+              ? `Nearest ${offer.seller} is ${offer.distanceKm != null ? `${formatDistance(offer.distanceKm, state.settings.units)} away` : 'near you'}. In-store prices can differ.`
+              : offer.storeChain
+                ? `No ${offer.seller} store near you, so this is an online price (delivery or shipping).`
+                : `Online only · sold and shipped by ${offer.seller}`}
           {offer.rating ? ` · ★ ${offer.rating}${offer.reviews ? ` (${offer.reviews})` : ''}` : ''}
         </Text>
       </View>
+
+      {(offer.best || offer.cheapest) && (
+        <View style={{ gap: 6 }}>
+          {offer.best && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Sticker label="BEST VALUE" bg={colors.success} />
+              <Text variant="small" muted style={{ flex: 1, fontSize: 12 }}>
+                {unit ? `Lowest price ${perWords(offer.unitLabel)} (${unit})` : 'Lowest price for what you searched'}
+              </Text>
+            </View>
+          )}
+          {offer.cheapest && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Sticker label="CHEAPEST" bg={colors.sky} />
+              <Text variant="small" muted style={{ flex: 1, fontSize: 12 }}>
+                Lowest total price ({formatPrice(offer.price, offer.currency)})
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
 
       {/* Nutrition for this product (food & drink only) */}
       {isFood && (
